@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>100% Precise Surveyor Location System</title>
+    <title>Customer Route & Photo Tracker</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
@@ -14,20 +14,22 @@
         h3 { margin: 0 0 10px 0; color: #1a73e8; font-size: 18px; text-align: center; }
         .form-group { margin-bottom: 8px; }
         label { font-weight: 600; font-size: 13px; color: #444; display: block; margin-bottom: 2px; }
-        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; outline: none; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; outline: none; background: #fff; }
         
         .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; }
         .btn-gps { background-color: #f9ab00; color: #000; }
         .btn-save { background-color: #1a73e8; color: white; }
         .btn-reset { background-color: #6c757d; color: white; }
+        .btn-delete { background-color: #d93025; color: white; font-size: 12px; padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; float: right; }
         
-        #map { height: 320px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; }
+        #map { height: 280px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; }
         .map-instructions { font-size: 11px; color: #333; margin-top: 4px; text-align: center; background: #e8f0fe; padding: 6px; border-radius: 4px; }
 
-        .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; }
+        .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; }
         .card h4 { margin: 0 0 4px 0; font-size: 16px; color: #222; }
         .card p { margin: 2px 0; font-size: 13px; color: #555; }
-        .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 6px; font-weight: bold; text-align: center; width: 100%; }
+        .house-img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #ddd; }
+        .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 8px; font-weight: bold; text-align: center; width: 100%; }
 
         #toast {
             visibility: hidden; min-width: 250px; background-color: #2e7d32; color: #fff;
@@ -43,7 +45,7 @@
 <body>
 
 <div class="container">
-    <h3>📌 Surveyor Level Location System</h3>
+    <h3>📌 Surveyor & Photo Route Tracker</h3>
 
     <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee;">
         <div class="form-group">
@@ -58,17 +60,21 @@
             <label>දුරකථනය / විස්තර</label>
             <input type="text" id="phone" placeholder="07X XXX XXXX">
         </div>
+        <div class="form-group">
+            <label>ගෙදර ඡායාරූපය (House Photo)</label>
+            <input type="file" id="housePhoto" accept="image/*">
+        </div>
         
-        <button class="btn btn-gps" onclick="getExactPinPoint()">🎯 මම දැනට ඉන්න තැන Exact Location එක Lock කරන්න</button>
+        <button class="btn btn-gps" onclick="getExactPinPoint()">🎯 මම දැනට ඉන්න තැන Location එක ගන්න</button>
         <span id="status" style="font-size:12px; font-weight:bold; display:block; margin-top:4px;"></span>
 
         <div id="map"></div>
-        <div class="map-instructions">💡 අලුත් ගෙවල්/පාරවල් Map එකේ නැතත්, ඔබ සිටින ස්ථානය දශමයටම සේව් වේ. මාර්කර් එක අවශ්‍ය නම් වෙනස් කරන්න.</div>
+        <div class="map-instructions">💡 Map එක උඩ ඇති Control Icon එකෙන් **දල මැප් එක** හෝ **Satellite View** තෝරාගත හැක.</div>
 
         <input type="hidden" id="lat">
         <input type="hidden" id="lng">
 
-        <button class="btn btn-save" onclick="saveCustomer()">💾 100% ක් නිවැරදිව Save කරන්න</button>
+        <button class="btn btn-save" onclick="saveCustomer()">💾 ඡායාරූපය සමග Save කරන්න</button>
         <button class="btn btn-reset" onclick="resetForm()">🔄 Form එක Clean කරන්න (Reset)</button>
     </div>
 
@@ -86,26 +92,29 @@
 <script>
     let customers = JSON.parse(localStorage.getItem('myCustomers')) || [];
     let map, marker, accuracyCircle;
+    const DELETE_PIN = "1234"; // 🔒 Delete කිරීමට අදාළ ආරක්ෂිත PIN එක
 
     function initMap() {
+        // 1. සාමාන්‍ය දල මැප් එක (Standard Road Map Layer)
+        const streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        });
+
+        // 2. Satellite Layer
         const googleHybrid = L.tileLayer('http://{s}.google.com/vt/lyrs=y,m&x={x}&y={y}&z={z}',{
             maxZoom: 22,
             subdomains:['mt0','mt1','mt2','mt3']
         });
 
-        const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            maxZoom: 20
-        });
-
         map = L.map('map', {
             center: [7.8731, 80.7718],
             zoom: 7,
-            layers: [googleHybrid]
+            layers: [streetMap] // Default: දල මැප් එක
         });
 
         const baseMaps = {
-            "🛰️ Google Satellite + Maps": googleHybrid,
-            "🌳 ESRI HD Satellite": esriSat
+            "🗺️ දල මැප් එක (Road Map)": streetMap,
+            "🛰️ Satellite HD View": googleHybrid
         };
 
         L.control.layers(baseMaps).addTo(map);
@@ -137,12 +146,12 @@
             accuracyCircle = L.circle([exactLat, exactLng], { radius: accuracy, color: '#1a73e8', fillOpacity: 0.15 }).addTo(map);
         }
 
-        map.setView([exactLat, exactLng], 19);
+        map.setView([exactLat, exactLng], 18);
     }
 
     function getExactPinPoint() {
         const status = document.getElementById('status');
-        status.innerText = "⏳ චන්ද්‍රිකා මඟින් සැබෑ පිහිටීම සොයමින් පවතී...";
+        status.innerText = "⏳ Location සොයමින් පවතී...";
         status.style.color = "#f9ab00";
 
         if (!navigator.geolocation) {
@@ -157,8 +166,8 @@
                 status.innerText = `✅ සාර්ථකයි! Accuracy: ~${Math.round(acc)}m`;
                 status.style.color = "green";
             },
-            (err) => {
-                status.innerText = "❌ Phone Location සක්‍රීය කර එළිමහනට එන්න.";
+            () => {
+                status.innerText = "❌ Phone Location සක්‍රීය කරන්න.";
                 status.style.color = "red";
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -171,25 +180,53 @@
         const phone = document.getElementById('phone').value.trim();
         const lat = document.getElementById('lat').value;
         const lng = document.getElementById('lng').value;
+        const photoInput = document.getElementById('housePhoto');
 
         if (!regNo || !name || !lat || !lng) {
             alert("ලියාපදිංචි අංකය, නම සහ Location එක තෝරන්න!");
             return;
         }
 
-        const newCustomer = { regNo, name, phone, lat, lng };
+        // ඡායාරූපය Base64 string එකක් ලෙස Save කිරීම
+        if (photoInput.files && photoInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const photoData = e.target.result;
+                storeData(regNo, name, phone, lat, lng, photoData);
+            };
+            reader.readAsDataURL(photoInput.files[0]);
+        } else {
+            storeData(regNo, name, phone, lat, lng, null);
+        }
+    }
+
+    function storeData(regNo, name, phone, lat, lng, photo) {
+        const newCustomer = { id: Date.now(), regNo, name, phone, lat, lng, photo };
         customers.unshift(newCustomer);
         localStorage.setItem('myCustomers', JSON.stringify(customers));
 
-        showToast("✅ ස්ථානය 100% ක් නිවැරදිව Save විය!");
+        showToast("✅ දත්ත සහ ඡායාරූපය Save විය!");
         resetForm();
         renderCustomers();
+    }
+
+    function deleteCustomer(id) {
+        const enteredPin = prompt("🔒 ඩිලීට් කිරීමට ආරක්ෂිත PIN අංකය ඇතුළත් කරන්න:");
+        if (enteredPin === DELETE_PIN) {
+            customers = customers.filter(c => c.id !== id);
+            localStorage.setItem('myCustomers', JSON.stringify(customers));
+            showToast("🗑️ දත්ත සාර්ථකව ඩිලීට් විය!");
+            renderCustomers();
+        } else if (enteredPin !== null) {
+            alert("❌ PIN අංකය වැරදියි! ඩිලීට් කිරීමට අවසර නැත.");
+        }
     }
 
     function resetForm() {
         document.getElementById('regNo').value = '';
         document.getElementById('custName').value = '';
         document.getElementById('phone').value = '';
+        document.getElementById('housePhoto').value = '';
         document.getElementById('lat').value = '';
         document.getElementById('lng').value = '';
         document.getElementById('status').innerText = '';
@@ -217,15 +254,17 @@
         }
 
         list.forEach(c => {
-            // Native Direct Navigation Link
             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
-            
+            const imageHtml = c.photo ? `<img src="${c.photo}" class="house-img" alt="House Photo">` : '';
+
             container.innerHTML += `
                 <div class="card">
+                    <button class="btn-delete" onclick="deleteCustomer(${c.id})">🗑️ Delete</button>
                     <h4>[${c.regNo}] ${c.name}</h4>
                     <p>📞 ${c.phone || 'දුරකථන අංකයක් නැත'}</p>
-                    <p style="font-size:11px; color:#888;">📍 Precision Coordinates: ${c.lat}, ${c.lng}</p>
-                    <a href="${mapsUrl}" target="_blank" class="btn-nav">🚗 කෙළින්ම ගෙදරටම Route එක දාන්න (Google Navigation)</a>
+                    <p style="font-size:11px; color:#888;">📍 Lat: ${c.lat}, Lng: ${c.lng}</p>
+                    ${imageHtml}
+                    <a href="${mapsUrl}" target="_blank" class="btn-nav">🚗 කෙළින්ම ගෙදරටම Route එක දාන්න (Google Maps)</a>
                 </div>
             `;
         });
