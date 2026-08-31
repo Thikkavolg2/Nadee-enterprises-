@@ -3,38 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>High Precision Customer Map</title>
+    <title>HD Satellite Customer Tracker</title>
     
-    <!-- Leaflet CSS for Interactive Map -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #f0f2f5; margin: 0; padding: 12px; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .container { max-width: 500px; margin: auto; background: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         h3 { margin: 0 0 12px 0; color: #1a73e8; font-size: 18px; text-align: center; }
         .form-group { margin-bottom: 10px; }
         label { font-weight: 600; font-size: 13px; color: #444; display: block; margin-bottom: 3px; }
         input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; outline: none; }
+        
         .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; }
         .btn-gps { background-color: #f9ab00; color: #000; }
         .btn-save { background-color: #1a73e8; color: white; }
+        .btn-reset { background-color: #6c757d; color: white; }
         
-        /* Map Styles */
-        #map { height: 250px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; }
-        .map-instructions { font-size: 11px; color: #666; margin-top: 4px; text-align: center; }
+        /* Map Layout */
+        #map { height: 280px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; }
+        .map-instructions { font-size: 11px; color: #555; margin-top: 4px; text-align: center; background: #eef5ff; padding: 4px; border-radius: 4px; }
 
+        /* Cards & Search */
         .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; }
         .card h4 { margin: 0 0 4px 0; font-size: 16px; color: #222; }
         .card p { margin: 2px 0; font-size: 13px; color: #555; }
-        .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-size: 13px; display: inline-block; margin-top: 6px; font-weight: bold; }
-        #status { font-size: 12px; font-weight: bold; margin-top: 4px; display: block; }
+        .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 6px; font-weight: bold; text-align: center; width: 100%; }
+
+        /* Toast Notification */
+        #toast {
+            visibility: hidden; min-width: 250px; background-color: #2e7d32; color: #fff;
+            text-align: center; border-radius: 8px; padding: 14px; position: fixed;
+            z-index: 999; left: 50%; bottom: 30px; transform: translateX(-50%);
+            font-size: 15px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3>🎯 Precision Route & Location Tracker</h3>
+    <h3>📡 HD Satellite Customer Map</h3>
 
     <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee;">
         <div class="form-group">
@@ -50,17 +62,17 @@
             <input type="text" id="phone" placeholder="07X XXX XXXX">
         </div>
         
-        <button class="btn btn-gps" onclick="fetchAccurateGPS()">📍 GPS ලොකේෂන් එක ගන්න</button>
-        <span id="status"></span>
+        <button class="btn btn-gps" onclick="fetchAccurateGPS()">📍 දැනට සිටින GPS ලොකේෂන් එක ගන්න</button>
+        <span id="status" style="font-size:12px; font-weight:bold; display:block; margin-top:4px;"></span>
 
-        <!-- Interactive Map Element -->
         <div id="map"></div>
-        <div class="map-instructions">💡 Pin එක වැරදිනම්, Map එක ඇතුළේ නිවසේ වහලය උඩට Pin එක Move කර තබන්න (Drag & Drop).</div>
+        <div class="map-instructions">💡 Map Type එක මාරු කර පටු පාරවල් / ගෙවල් බලා Marker එක වහලය උඩටම Drag කර තබන්න.</div>
 
         <input type="hidden" id="lat">
         <input type="hidden" id="lng">
 
         <button class="btn btn-save" onclick="saveCustomer()">💾 දශමයටම Save කරන්න</button>
+        <button class="btn btn-reset" onclick="resetForm()">🔄 Form එක Clean කරන්න (Reset)</button>
     </div>
 
     <div style="margin-top: 15px;">
@@ -70,31 +82,50 @@
     <div id="customerList"></div>
 </div>
 
-<!-- Leaflet JS -->
+<div id="toast">✅ දත්ත සාර්ථකව සුරකින ලදී!</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
     let customers = JSON.parse(localStorage.getItem('myCustomers')) || [];
     let map, marker;
+    let currentSatTile;
 
-    // Map එක Init කිරීම (Default Location: Sri Lanka Center)
     function initMap() {
-        map = L.map('map').setView([7.8731, 80.7718], 7);
+        // High Quality Map Layers
+        const googleSat = L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{
+            maxZoom: 20,
+            subdomains:['mt0','mt1','mt2','mt3']
+        });
 
-        // OpenStreetMap HD Tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
+        const streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        });
 
-        // Marker Drag Event
+        const esriSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19
+        });
+
+        map = L.map('map', {
+            center: [7.8731, 80.7718],
+            zoom: 7,
+            layers: [googleSat] // Default Google HD Satellite
+        });
+
+        const baseMaps = {
+            "🛰️ Google Satellite (HD)": googleSat,
+            "🌳 Esri HD Satellite": esriSat,
+            "🗺️ Street Roads": streetMap
+        };
+
+        L.control.layers(baseMaps).addTo(map);
+
         map.on('click', function(e) {
             updateMarkerPosition(e.latlng.lat, e.latlng.lng);
         });
     }
 
     function updateMarkerPosition(lat, lng) {
-        // High Precision: Fix to 6 decimal places (~0.1m accuracy)
         const exactLat = parseFloat(lat).toFixed(6);
         const exactLng = parseFloat(lng).toFixed(6);
 
@@ -106,40 +137,29 @@
         } else {
             marker = L.marker([exactLat, exactLng], { draggable: true }).addTo(map);
             marker.on('dragend', function(event) {
-                const position = marker.getLatLng();
-                updateMarkerPosition(position.lat, position.lng);
+                const pos = marker.getLatLng();
+                updateMarkerPosition(pos.lat, pos.lng);
             });
         }
-        map.setView([exactLat, exactLng], 18); // Zoom to House Level
+        map.setView([exactLat, exactLng], 18);
     }
 
     function fetchAccurateGPS() {
         const status = document.getElementById('status');
-        status.innerText = "⏳ ඉතා නිවැරදි GPS සෙවීම සිදුකරමින් පවතී...";
+        status.innerText = "⏳ GPS සොයමින් පවතී...";
         status.style.color = "#f9ab00";
-
-        if (!navigator.geolocation) {
-            status.innerText = "❌ GPS පහසුකම නැත";
-            return;
-        }
 
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                updateMarkerPosition(lat, lng);
-                status.innerText = `✅ සාර්ථකයි! Accuracy: ~${Math.round(pos.coords.accuracy)}m`;
+                updateMarkerPosition(pos.coords.latitude, pos.coords.longitude);
+                status.innerText = `✅ GPS ලැබුණි (Accuracy: ~${Math.round(pos.coords.accuracy)}m)`;
                 status.style.color = "green";
             },
-            (err) => {
-                status.innerText = "❌ GPS ලබාගැනීමට නොහැකි විය. Phone Location On කර ඇත්දැයි බලන්න.";
+            () => {
+                status.innerText = "❌ GPS සක්‍රිය කරන්න.";
                 status.style.color = "red";
             },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0
-            }
+            { enableHighAccuracy: true, timeout: 10000 }
         );
     }
 
@@ -150,13 +170,8 @@
         const lat = document.getElementById('lat').value;
         const lng = document.getElementById('lng').value;
 
-        if (!regNo || !name) {
-            alert("ලියාපදිංචි අංකය සහ නම අනිවාර්යයි!");
-            return;
-        }
-
-        if (!lat || !lng) {
-            alert("කරුණාකර Map එකෙන් ස්ථානය තෝරන්න!");
+        if (!regNo || !name || !lat || !lng) {
+            alert("කරුණාකර අංකය, නම සහ Map එකෙන් ලොකේෂන් එක ලබාගන්න!");
             return;
         }
 
@@ -164,16 +179,30 @@
         customers.unshift(newCustomer);
         localStorage.setItem('myCustomers', JSON.stringify(customers));
 
-        // Form Clean
+        showToast("✅ පාරිභෝගිකයා සාර්ථකව Save විය!");
+        resetForm();
+        renderCustomers();
+    }
+
+    function resetForm() {
         document.getElementById('regNo').value = '';
         document.getElementById('custName').value = '';
         document.getElementById('phone').value = '';
         document.getElementById('lat').value = '';
         document.getElementById('lng').value = '';
         document.getElementById('status').innerText = '';
-        if(marker) map.removeLayer(marker);
+        if (marker) {
+            map.removeLayer(marker);
+            marker = null;
+        }
+        map.setView([7.8731, 80.7718], 7);
+    }
 
-        renderCustomers();
+    function showToast(msg) {
+        const toast = document.getElementById("toast");
+        toast.innerText = msg;
+        toast.className = "show";
+        setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
     }
 
     function renderCustomers(list = customers) {
@@ -186,13 +215,15 @@
         }
 
         list.forEach(c => {
-            const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`;
+            // Live Navigation: Direct Turn-by-Turn Navigation Link
+            const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
+            
             container.innerHTML += `
                 <div class="card">
                     <h4>[${c.regNo}] ${c.name}</h4>
                     <p>📞 ${c.phone || 'දුරකථන අංකයක් නැත'}</p>
-                    <p style="font-size:11px; color:#888;">📍 Lat: ${c.lat}, Lng: ${c.lng}</p>
-                    <a href="${mapsUrl}" target="_blank" class="btn-nav">🗺️ Google Maps Navigation</a>
+                    <p style="font-size:11px; color:#888;">📍 Coordinate: ${c.lat}, ${c.lng}</p>
+                    <a href="${mapsUrl}" target="_blank" class="btn-nav">🗺️ ඉන්න තැන සිට පාර බලන්න (Navigate)</a>
                 </div>
             `;
         });
@@ -207,7 +238,6 @@
         renderCustomers(filtered);
     }
 
-    // Run Map on Page Load
     window.onload = function() {
         initMap();
         renderCustomers();
