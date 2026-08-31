@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Precision Route Tracker</title>
+    <title>Customer Route & Photo Tracker</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
@@ -14,29 +14,26 @@
         h3 { margin: 0 0 10px 0; color: #1a73e8; font-size: 18px; text-align: center; }
         .form-group { margin-bottom: 8px; }
         label { font-weight: 600; font-size: 13px; color: #444; display: block; margin-bottom: 2px; }
-        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; outline: none; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; outline: none; background: #fff; }
         
         .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; }
         .btn-gps { background-color: #f9ab00; color: #000; }
         .btn-save { background-color: #1a73e8; color: white; }
         .btn-reset { background-color: #6c757d; color: white; }
         
-        #map { height: 300px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; }
+        /* Delete Button Style */
+        .btn-delete { background-color: #d93025; color: white; font-size: 12px; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; float: right; font-weight: bold; }
+        .btn-delete:hover { background-color: #b3261e; }
+        
+        #map { height: 300px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; z-index: 1; }
         .map-instructions { font-size: 11px; color: #333; margin-top: 4px; text-align: center; background: #e8f0fe; padding: 6px; border-radius: 4px; }
 
-        .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; }
-        .card h4 { margin: 0 0 4px 0; font-size: 16px; color: #222; }
+        .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; }
+        .card h4 { margin: 0 0 4px 0; font-size: 16px; color: #222; width: 75%; }
         .card p { margin: 2px 0; font-size: 13px; color: #555; }
-        .thumb-img { width: 100%; height: 120px; object-fit: cover; border-radius: 6px; margin-top: 6px; cursor: pointer; border: 1px solid #ddd; }
-        
-        .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 6px; font-weight: bold; text-align: center; width: 100%; }
+        .house-img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #ddd; }
+        .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 8px; font-weight: bold; text-align: center; width: 100%; }
 
-        /* Fullscreen Image Popup Modal */
-        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); justify-content: center; align-items: center; }
-        .modal-content { max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
-        .close-modal { position: absolute; top: 15px; right: 25px; color: white; font-size: 35px; font-weight: bold; cursor: pointer; }
-
-        /* Notification Toast */
         #toast {
             visibility: hidden; min-width: 250px; background-color: #2e7d32; color: #fff;
             text-align: center; border-radius: 8px; padding: 14px; position: fixed;
@@ -51,7 +48,7 @@
 <body>
 
 <div class="container">
-    <h3>🔒 Secure HD Route & Photo Tracker</h3>
+    <h3>📌 Surveyor & Photo Route Tracker</h3>
 
     <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee;">
         <div class="form-group">
@@ -67,21 +64,20 @@
             <input type="text" id="phone" placeholder="07X XXX XXXX">
         </div>
         <div class="form-group">
-            <label>නිවසේ / භාණ්ඩයේ ඡායාරූපය</label>
-            <input type="file" id="photoInput" accept="image/*" onchange="previewImage(event)">
+            <label>ගෙදර ඡායාරූපය (House Photo)</label>
+            <input type="file" id="housePhoto" accept="image/*">
         </div>
-
-        <button class="btn btn-gps" onclick="getExactPinPoint()">🎯 Exact Location එක Lock කරන්න</button>
+        
+        <button class="btn btn-gps" onclick="getExactPinPoint()">🎯 මම දැනට ඉන්න තැන Location එක ගන්න</button>
         <span id="status" style="font-size:12px; font-weight:bold; display:block; margin-top:4px;"></span>
 
         <div id="map"></div>
-        <div class="map-instructions">💡 Map එක මත Marker එක අදාළ නිවස උඩටම Drag කර තබන්න.</div>
+        <div class="map-instructions">💡 Map Control එකෙන් **දල මැප් එක** හෝ **Satellite View** තෝරාගෙන Marker එක Move කරන්න.</div>
 
         <input type="hidden" id="lat">
         <input type="hidden" id="lng">
-        <input type="hidden" id="photoBase64">
 
-        <button class="btn btn-save" onclick="saveCustomerWithPasscode()">🔒 Save කරන්න (Passcode Protected)</button>
+        <button class="btn btn-save" onclick="saveCustomer()">💾 ඡායාරූපය සමග Save කරන්න</button>
         <button class="btn btn-reset" onclick="resetForm()">🔄 Form එක Clean කරන්න (Reset)</button>
     </div>
 
@@ -92,35 +88,39 @@
     <div id="customerList"></div>
 </div>
 
-<div id="imageModal" class="modal" onclick="closeModal()">
-    <span class="close-modal">&times;</span>
-    <img class="modal-content" id="modalImg">
-</div>
-
 <div id="toast">✅ දත්ත සාර්ථකව සුරකින ලදී!</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    const SECURITY_PASSCODE = "1234"; // 🔑 ඔබට අවශ්‍ය Passcode එක මෙතැනින් වෙනස් කළ හැක
     let customers = JSON.parse(localStorage.getItem('myCustomers')) || [];
     let map, marker, accuracyCircle;
+    const DELETE_PIN = "1234"; // 🔒 Delete PIN එක
 
     function initMap() {
+        // 1. දල මැප් එක (Standard Street Map)
+        const streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        });
+
+        // 2. Google Satellite Hybrid Map
         const googleHybrid = L.tileLayer('http://{s}.google.com/vt/lyrs=y,m&x={x}&y={y}&z={z}',{
             maxZoom: 22,
             subdomains:['mt0','mt1','mt2','mt3']
         });
 
-        const openStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
-
         map = L.map('map', {
             center: [7.8731, 80.7718],
             zoom: 7,
-            layers: [googleHybrid]
+            layers: [streetMap]
         });
 
-        L.control.layers({ "🛰️ Satellite + Roads": googleHybrid, "🗺️ OpenStreetMap": openStreet }).addTo(map);
+        const baseMaps = {
+            "🗺️ දල මැප් එක (Road Map)": streetMap,
+            "🛰️ Satellite HD View": googleHybrid
+        };
+
+        L.control.layers(baseMaps).addTo(map);
 
         map.on('click', function(e) {
             updateMarkerPosition(e.latlng.lat, e.latlng.lng);
@@ -151,91 +151,97 @@
             accuracyCircle = L.circle([exactLat, exactLng], { radius: accuracy, color: '#1a73e8', fillOpacity: 0.15 }).addTo(map);
         }
 
-        map.setView([exactLat, exactLng], 19);
+        map.setView([exactLat, exactLng], 18);
+        map.invalidateSize();
     }
 
     function getExactPinPoint() {
         const status = document.getElementById('status');
-        status.innerText = "⏳ GPS ලොකේෂන් එක සොයමින් පවතී...";
+        status.innerText = "⏳ සැබෑ Location එක සොයමින් පවතී...";
         status.style.color = "#f9ab00";
+
+        if (!navigator.geolocation) {
+            status.innerText = "❌ GPS පහසුකම නොමැත.";
+            return;
+        }
 
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                updateMarkerPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
-                status.innerText = `✅ GPS ලැබුණි (Accuracy: ~${Math.round(pos.coords.accuracy)}m)`;
+                const acc = pos.coords.accuracy;
+                updateMarkerPosition(pos.coords.latitude, pos.coords.longitude, acc);
+                status.innerText = `✅ සාර්ථකයි! Accuracy: ~${Math.round(acc)}m`;
                 status.style.color = "green";
             },
             () => {
                 status.innerText = "❌ Phone Location සක්‍රීය කරන්න.";
                 status.style.color = "red";
             },
-            { enableHighAccuracy: true, timeout: 15000 }
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
     }
 
-    function previewImage(event) {
-        const file = event.target.files[0];
-        if (file) {
+    function saveCustomer() {
+        const regNo = document.getElementById('regNo').value.trim();
+        const name = document.getElementById('custName').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const lat = document.getElementById('lat').value;
+        const lng = document.getElementById('lng').value;
+        const photoInput = document.getElementById('housePhoto');
+
+        if (!regNo || !name || !lat || !lng) {
+            alert("ලියාපදිංචි අංකය, නම සහ Location එක තෝරන්න!");
+            return;
+        }
+
+        if (photoInput.files && photoInput.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                document.getElementById('photoBase64').value = e.target.result;
+                const photoData = e.target.result;
+                storeData(regNo, name, phone, lat, lng, photoData);
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(photoInput.files[0]);
+        } else {
+            storeData(regNo, name, phone, lat, lng, null);
         }
     }
 
-    function saveCustomerWithPasscode() {
-        const regNo = document.getElementById('regNo').value.trim();
-        const name = document.getElementById('custName').value.trim();
-        const lat = document.getElementById('lat').value;
-        const lng = document.getElementById('lng').value;
-
-        if (!regNo || !name || !lat || !lng) {
-            alert("කරුණාකර ලියාපදිංචි අංකය, නම සහ Location එක ලබාගන්න!");
-            return;
-        }
-
-        // Passcode Verification Prompt
-        const userPasscode = prompt("🔒 දත්ත සේව් කිරීමට Security Passcode එක ඇතුළත් කරන්න:");
-        if (userPasscode !== SECURITY_PASSCODE) {
-            alert("❌ වැරදි Passcode එකක්! දත්ත සුරැකීමට නොහැකි විය.");
-            return;
-        }
-
-        const phone = document.getElementById('phone').value.trim();
-        const photo = document.getElementById('photoBase64').value;
-
-        const newCustomer = { regNo, name, phone, lat, lng, photo };
+    function storeData(regNo, name, phone, lat, lng, photo) {
+        const newCustomer = { id: Date.now(), regNo, name, phone, lat, lng, photo };
         customers.unshift(newCustomer);
         localStorage.setItem('myCustomers', JSON.stringify(customers));
 
-        showToast("✅ Passcode එක තහවුරු විය. දත්ත සුරකින ලදී!");
+        showToast("✅ දත්ත සහ ඡායාරූපය Save විය!");
         resetForm();
         renderCustomers();
+    }
+
+    // 🔒 ඩිලීට් බටන් එකේ Function එක (Permission Password සහිතයි)
+    function deleteCustomer(id) {
+        const enteredPin = prompt("🔒 දත්ත ඩිලීට් කිරීමට ආරක්ෂිත PIN අංකය ඇතුළත් කරන්න:");
+        if (enteredPin === DELETE_PIN) {
+            customers = customers.filter(c => c.id !== id);
+            localStorage.setItem('myCustomers', JSON.stringify(customers));
+            showToast("🗑️ දත්ත සාර්ථකව ඩිලීට් විය!");
+            renderCustomers();
+        } else if (enteredPin !== null) {
+            alert("❌ PIN අංකය වැරදියි! ඩිලීට් කිරීමට අවසර නැත.");
+        }
     }
 
     function resetForm() {
         document.getElementById('regNo').value = '';
         document.getElementById('custName').value = '';
         document.getElementById('phone').value = '';
-        document.getElementById('photoInput').value = '';
-        document.getElementById('photoBase64').value = '';
+        document.getElementById('housePhoto').value = '';
         document.getElementById('lat').value = '';
         document.getElementById('lng').value = '';
         document.getElementById('status').innerText = '';
         
         if (marker) { map.removeLayer(marker); marker = null; }
         if (accuracyCircle) { map.removeLayer(accuracyCircle); accuracyCircle = null; }
+        
         map.setView([7.8731, 80.7718], 7);
-    }
-
-    function openModal(imgSrc) {
-        document.getElementById('modalImg').src = imgSrc;
-        document.getElementById('imageModal').style.display = 'flex';
-    }
-
-    function closeModal() {
-        document.getElementById('imageModal').style.display = 'none';
+        setTimeout(() => { map.invalidateSize(); }, 200);
     }
 
     function showToast(msg) {
@@ -256,15 +262,16 @@
 
         list.forEach(c => {
             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
-            const imgHtml = c.photo ? `<img src="${c.photo}" class="thumb-img" onclick="openModal('${c.photo}')" title="ලොකුවට බලන්න Click කරන්න">` : '';
+            const imageHtml = c.photo ? `<img src="${c.photo}" class="house-img" alt="House Photo">` : '';
 
             container.innerHTML += `
                 <div class="card">
+                    <button class="btn-delete" onclick="deleteCustomer(${c.id})">🗑️ ඩිලීට්</button>
                     <h4>[${c.regNo}] ${c.name}</h4>
                     <p>📞 ${c.phone || 'දුරකථන අංකයක් නැත'}</p>
-                    <p style="font-size:11px; color:#888;">📍 Coordinate: ${c.lat}, ${c.lng}</p>
-                    ${imgHtml}
-                    <a href="${mapsUrl}" target="_blank" class="btn-nav">🚗 කෙළින්ම ගෙදරටම Route එක දාන්න</a>
+                    <p style="font-size:11px; color:#888;">📍 Lat: ${c.lat}, Lng: ${c.lng}</p>
+                    ${imageHtml}
+                    <a href="${mapsUrl}" target="_blank" class="btn-nav">🚗 කෙළින්ම ගෙදරටම Route එක දාන්න (Google Maps)</a>
                 </div>
             `;
         });
