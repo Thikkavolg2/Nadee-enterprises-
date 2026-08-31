@@ -20,8 +20,6 @@
         .btn-gps { background-color: #f9ab00; color: #000; }
         .btn-save { background-color: #1a73e8; color: white; }
         .btn-reset { background-color: #6c757d; color: white; }
-        
-        /* Delete Button Style */
         .btn-delete { background-color: #d93025; color: white; font-size: 12px; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; float: right; font-weight: bold; }
         .btn-delete:hover { background-color: #b3261e; }
         
@@ -31,8 +29,17 @@
         .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; }
         .card h4 { margin: 0 0 4px 0; font-size: 16px; color: #222; width: 75%; }
         .card p { margin: 2px 0; font-size: 13px; color: #555; }
-        .house-img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #ddd; }
+        
+        /* Photo & Pop-up Styles */
+        .house-img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #ddd; cursor: pointer; transition: 0.2s; }
+        .house-img:hover { opacity: 0.85; }
+        
         .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 8px; font-weight: bold; text-align: center; width: 100%; }
+
+        /* Fullscreen Image Modal (Pop-up) */
+        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
+        .modal-content { max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 15px rgba(255,255,255,0.2); }
+        .close-modal { position: absolute; top: 15px; right: 25px; color: #fff; font-size: 35px; font-weight: bold; cursor: pointer; }
 
         #toast {
             visibility: hidden; min-width: 250px; background-color: #2e7d32; color: #fff;
@@ -88,6 +95,11 @@
     <div id="customerList"></div>
 </div>
 
+<div id="imageModal" class="modal" onclick="closeImageModal()">
+    <span class="close-modal">&times;</span>
+    <img class="modal-content" id="modalImg">
+</div>
+
 <div id="toast">✅ දත්ත සාර්ථකව සුරකින ලදී!</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -95,15 +107,13 @@
 <script>
     let customers = JSON.parse(localStorage.getItem('myCustomers')) || [];
     let map, marker, accuracyCircle;
-    const DELETE_PIN = "1234"; // 🔒 Delete PIN එක
+
+    // 🔒 Passwords / PIN Codes
+    const SAVE_PIN = "1234";   // 🔑 Save කිරීමට අදාළ PIN එක
+    const DELETE_PIN = "1234"; // 🔑 Delete කිරීමට අදාළ PIN එක
 
     function initMap() {
-        // 1. දල මැප් එක (Standard Street Map)
-        const streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
-        });
-
-        // 2. Google Satellite Hybrid Map
+        const streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
         const googleHybrid = L.tileLayer('http://{s}.google.com/vt/lyrs=y,m&x={x}&y={y}&z={z}',{
             maxZoom: 22,
             subdomains:['mt0','mt1','mt2','mt3']
@@ -180,6 +190,7 @@
         );
     }
 
+    // 🔒 SAVE FUNCTION WITH SECURITY PIN
     function saveCustomer() {
         const regNo = document.getElementById('regNo').value.trim();
         const name = document.getElementById('custName').value.trim();
@@ -190,6 +201,13 @@
 
         if (!regNo || !name || !lat || !lng) {
             alert("ලියාපදිංචි අංකය, නම සහ Location එක තෝරන්න!");
+            return;
+        }
+
+        // Save කිරීමට PIN එක ඉල්ලීම
+        const enteredPin = prompt("🔒 දත්ත සේව් කිරීමට Security PIN එක ඇතුළත් කරන්න:");
+        if (enteredPin !== SAVE_PIN) {
+            if (enteredPin !== null) alert("❌ Security PIN එක වැරදියි! සේව් කිරීමට අවසර නැත.");
             return;
         }
 
@@ -215,16 +233,16 @@
         renderCustomers();
     }
 
-    // 🔒 ඩිලීට් බටන් එකේ Function එක (Permission Password සහිතයි)
+    // 🔒 DELETE FUNCTION WITH SECURITY PIN
     function deleteCustomer(id) {
-        const enteredPin = prompt("🔒 දත්ත ඩිලීට් කිරීමට ආරක්ෂිත PIN අංකය ඇතුළත් කරන්න:");
+        const enteredPin = prompt("🔒 දත්ත ඩිලීට් කිරීමට Security PIN එක ඇතුළත් කරන්න:");
         if (enteredPin === DELETE_PIN) {
             customers = customers.filter(c => c.id !== id);
             localStorage.setItem('myCustomers', JSON.stringify(customers));
             showToast("🗑️ දත්ත සාර්ථකව ඩිලීට් විය!");
             renderCustomers();
         } else if (enteredPin !== null) {
-            alert("❌ PIN අංකය වැරදියි! ඩිලීට් කිරීමට අවසර නැත.");
+            alert("❌ Security PIN එක වැරදියි! ඩිලීට් කිරීමට අවසර නැත.");
         }
     }
 
@@ -251,6 +269,18 @@
         setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
     }
 
+    // 🖼️ Image Pop-up Functions
+    function openImageModal(imgSrc) {
+        const modal = document.getElementById("imageModal");
+        const modalImg = document.getElementById("modalImg");
+        modal.style.display = "flex";
+        modalImg.src = imgSrc;
+    }
+
+    function closeImageModal() {
+        document.getElementById("imageModal").style.display = "none";
+    }
+
     function renderCustomers(list = customers) {
         const container = document.getElementById('customerList');
         container.innerHTML = '';
@@ -262,7 +292,7 @@
 
         list.forEach(c => {
             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
-            const imageHtml = c.photo ? `<img src="${c.photo}" class="house-img" alt="House Photo">` : '';
+            const imageHtml = c.photo ? `<img src="${c.photo}" class="house-img" onclick="openImageModal('${c.photo}')" alt="House Photo" title="Click to enlarge">` : '';
 
             container.innerHTML += `
                 <div class="card">
