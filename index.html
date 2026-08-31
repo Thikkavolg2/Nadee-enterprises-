@@ -3,153 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Route & Location Tracker</title>
+    <title>Fast Route Tracker</title>
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f4f7f6; margin: 0; padding: 15px; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #1a73e8; margin-top: 0; }
-        .form-group { margin-bottom: 12px; }
-        label { font-weight: bold; display: block; margin-bottom: 5px; font-size: 14px; }
-        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #f0f2f5; margin: 0; padding: 12px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h3 { margin: 0 0 12px 0; color: #1a73e8; font-size: 18px; text-align: center; }
+        .form-group { margin-bottom: 10px; }
+        label { font-weight: 600; font-size: 13px; color: #444; display: block; margin-bottom: 3px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; outline: none; }
+        input:focus { border-color: #1a73e8; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; }
         .btn-gps { background-color: #f9ab00; color: #000; }
         .btn-save { background-color: #1a73e8; color: white; }
-        .search-box { margin: 20px 0 10px 0; }
-        .card { background: #fafafa; border-left: 5px solid #1a73e8; padding: 12px; margin-bottom: 10px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .card h4 { margin: 0 0 5px 0; color: #333; }
-        .card p { margin: 3px 0; font-size: 14px; color: #666; }
-        .btn-nav { background-color: #34a853; color: white; width: auto; padding: 8px 15px; margin-top: 5px; font-size: 14px; display: inline-block; text-decoration: none; border-radius: 4px; }
+        .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; }
+        .card h4 { margin: 0 0 4px 0; font-size: 16px; color: #222; }
+        .card p { margin: 2px 0; font-size: 13px; color: #555; }
+        .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-size: 13px; display: inline-block; margin-top: 6px; font-weight: bold; }
+        #status { font-size: 12px; font-weight: bold; margin-top: 4px; display: block; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>නිවාස මාර්ග පද්ධතිය (Route Tracker)</h2>
+    <h3>⚡ Fast Customer Route Tracker</h3>
 
-    <!-- නව පාරිභෝගිකයෙකු එකතු කිරීම -->
-    <div style="background: #eef5ff; padding: 15px; border-radius: 8px;">
-        <h3>නව නිවසක් සටහන් කිරීම</h3>
+    <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee;">
         <div class="form-group">
-            <label>ලියාපදිංචි අංකය (Reg No):</label>
-            <input type="text" id="regNo" placeholder="උදා: CUS-001">
+            <label>ලියාපදිංචි අංකය (Reg No) *</label>
+            <input type="text" id="regNo" placeholder="CUS-001" required>
         </div>
         <div class="form-group">
-            <label>පාරිභෝගිකයාගේ නම:</label>
+            <label>නම *</label>
             <input type="text" id="custName" placeholder="නම ඇතුළත් කරන්න">
         </div>
         <div class="form-group">
-            <label>දුරකථන අංකය:</label>
-            <input type="text" id="phone" placeholder="07XXXXXXXX">
+            <label>දුරකථනය / ලිපිනය</label>
+            <input type="text" id="phone" placeholder="07X XXX XXXX / ප්‍රදේශය">
         </div>
-        <div class="form-group">
-            <label>ලිපිනය / ප්‍රදේශය:</label>
-            <input type="text" id="address" placeholder="ප්‍රදේශයේ නම">
-        </div>
-        <div class="form-group">
-            <button class="btn btn-gps" onclick="getCurrentLocation()">📍 දැනට සිටින GPS ස්ථානය ගන්න</button>
-            <input type="hidden" id="latitude">
-            <input type="hidden" id="longitude">
-            <p id="gpsStatus" style="font-size: 12px; color: #555; margin: 4px 0 0 0;"></p>
-        </div>
-        <button class="btn btn-save" onclick="saveCustomer()">💾 පාරිභෝගිකයා සුරකින්න</button>
+        
+        <button class="btn btn-gps" onclick="quickGPS()">📍 GPS Location එක ගන්න (Fast)</button>
+        <span id="status"></span>
+
+        <input type="hidden" id="lat">
+        <input type="hidden" id="lng">
+
+        <button class="btn btn-save" onclick="saveCustomer()">💾 Save කරන්න</button>
     </div>
 
-    <!-- සොයාගැනීම -->
-    <div class="search-box">
-        <h3>සොයන්න (Search)</h3>
-        <input type="text" id="searchInput" onkeyup="searchCustomer()" placeholder="ලියාපදිංචි අංකය හෝ නම ගහන්න...">
+    <div style="margin-top: 15px;">
+        <input type="text" id="search" onkeyup="searchCustomer()" placeholder="🔍 අංකයෙන් හෝ නමෙන් සොයන්න...">
     </div>
 
-    <!-- ලැයිස්තුව -->
     <div id="customerList"></div>
 </div>
 
 <script>
     let customers = JSON.parse(localStorage.getItem('myCustomers')) || [];
 
-    function getCurrentLocation() {
-        const status = document.getElementById('gpsStatus');
-        if (navigator.geolocation) {
-            status.innerText = "GPS ස්ථානය ලබා ගනිමින් පවතී...";
-            navigator.geolocation.getCurrentPosition(position => {
-                document.getElementById('latitude').value = position.coords.latitude;
-                document.getElementById('longitude').value = position.coords.longitude;
-                status.innerText = "✅ GPS ස්ථානය සාර්ථකව ලබා ගත්තා!";
-                status.style.color = "green";
-            }, () => {
-                status.innerText = "❌ GPS ස්ථානය ලබා ගැනීමට අපොහොසත් විය. Location On කරන්න.";
-                status.style.color = "red";
-            });
-        } else {
-            status.innerText = "ඔබේ බ්‍රවුසරයේ GPS පහසුකම නැත.";
+    // වේගයෙන් GPS ලබාගැනීමට හදා ඇති Function එක
+    function quickGPS() {
+        const status = document.getElementById('status');
+        status.innerText = "⏳ GPS ස්ථානය ගනිමින් පවතී...";
+        status.style.color = "#f9ab00";
+
+        if (!navigator.geolocation) {
+            status.innerText = "❌ GPS සපයන්නේ නැත";
+            return;
         }
+
+        // Fast GPS options
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 5000, // තත්පර 5න් Cancel වී Fast Location ගනී
+            maximumAge: 0
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                document.getElementById('lat').value = pos.coords.latitude;
+                document.getElementById('lng').value = pos.coords.longitude;
+                status.innerText = "✅ GPS සටහන් විය!";
+                status.style.color = "green";
+            },
+            (err) => {
+                // High accuracy නැතිනම් Low accuracy වලින් ට්‍රයි කරයි (Faster)
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        document.getElementById('lat').value = pos.coords.latitude;
+                        document.getElementById('lng').value = pos.coords.longitude;
+                        status.innerText = "✅ GPS සටහන් විය (Approx)!";
+                        status.style.color = "green";
+                    },
+                    () => {
+                        status.innerText = "❌ GPS ගන්න බෑ. Location On කර තිබේදැයි බලන්න.";
+                        status.style.color = "red";
+                    },
+                    { enableHighAccuracy: false, timeout: 5000 }
+                );
+            },
+            options
+        );
     }
 
     function saveCustomer() {
         const regNo = document.getElementById('regNo').value.trim();
         const name = document.getElementById('custName').value.trim();
         const phone = document.getElementById('phone').value.trim();
-        const address = document.getElementById('address').value.trim();
-        const lat = document.getElementById('latitude').value;
-        const lng = document.getElementById('longitude').value;
+        const lat = document.getElementById('lat').value;
+        const lng = document.getElementById('lng').value;
 
-        if (!regNo || !name || !lat || !lng) {
-            alert("කරුණාකර ලියාපදිංචි අංකය, නම සහ GPS Location එක ලබාගන්න!");
+        if (!regNo || !name) {
+            alert("ලියාපදිංචි අංකය සහ නම අනිවාර්යයි!");
             return;
         }
 
-        const newCustomer = { regNo, name, phone, address, lat, lng };
-        customers.push(newCustomer);
-        localStorage.setItem('myCustomers', JSON.stringify(customers));
-        
-        alert("පාරිභෝගික තොරතුරු සාර්ථකව සුරකින ලදී!");
-        clearForm();
-        renderCustomers();
-    }
+        if (!lat || !lng) {
+            alert("කරුණාකර පළමුව 'GPS Location එක ගන්න' Button එක Click කරන්න!");
+            return;
+        }
 
-    function clearForm() {
+        const newCustomer = { regNo, name, phone, lat, lng };
+        customers.unshift(newCustomer); // අලුත් අය උඩටම එනවා
+        localStorage.setItem('myCustomers', JSON.stringify(customers));
+
+        // Form එක Clean කිරීම
         document.getElementById('regNo').value = '';
         document.getElementById('custName').value = '';
         document.getElementById('phone').value = '';
-        document.getElementById('address').value = '';
-        document.getElementById('latitude').value = '';
-        document.getElementById('longitude').value = '';
-        document.getElementById('gpsStatus').innerText = '';
+        document.getElementById('lat').value = '';
+        document.getElementById('lng').value = '';
+        document.getElementById('status').innerText = '';
+
+        renderCustomers();
     }
 
-    function renderCustomers(filteredList = customers) {
-        const listDiv = document.getElementById('customerList');
-        listDiv.innerHTML = '';
+    function renderCustomers(list = customers) {
+        const container = document.getElementById('customerList');
+        container.innerHTML = '';
 
-        if (filteredList.length === 0) {
-            listDiv.innerHTML = '<p style="text-align:center; color:#888;">කිසිදු තොරතුරක් හමු වූයේ නැත.</p>';
+        if (list.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#777; margin-top:15px;">දත්ත කිසිවක් නැත.</p>';
             return;
         }
 
-        filteredList.forEach(c => {
+        list.forEach(c => {
+            // Google Maps Direct Navigation Link එක
             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`;
-            listDiv.innerHTML += `
+            container.innerHTML += `
                 <div class="card">
                     <h4>[${c.regNo}] ${c.name}</h4>
-                    <p>📞 දුරකථනය: ${c.phone}</p>
-                    <p>🏠 ලිපිනය: ${c.address}</p>
-                    <a href="${mapsUrl}" target="_blank" class="btn-nav">🚗 පාර පෙන්වන්න (Google Maps)</a>
+                    <p>📞 ${c.phone || 'දුරකථන අංකයක් නැත'}</p>
+                    <a href="${mapsUrl}" target="_blank" class="btn-nav">🗺️ පාර බලන්න (Google Maps)</a>
                 </div>
             `;
         });
     }
 
     function searchCustomer() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
+        const q = document.getElementById('search').value.toLowerCase();
         const filtered = customers.filter(c => 
-            c.regNo.toLowerCase().includes(query) || 
-            c.name.toLowerCase().includes(query)
+            c.regNo.toLowerCase().includes(q) || 
+            c.name.toLowerCase().includes(q)
         );
         renderCustomers(filtered);
     }
 
-    // ආරම්භයේදී ලැයිස්තුව පෙන්වන්න
     renderCustomers();
 </script>
 
