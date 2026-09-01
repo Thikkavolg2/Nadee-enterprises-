@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Customer Route & Photo Tracker (Ultra-Fast & Accurate)</title>
+    <title>Cloud Customer Route Tracker - Dual Pin Precision</title>
     
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -20,7 +20,7 @@
         .btn-reset { background-color: #6c757d; color: white; }
         .btn-delete { background-color: #d93025; color: white; font-size: 12px; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; float: right; font-weight: bold; }
         
-        #map { height: 320px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; background: #e5e3df; }
+        #map { height: 340px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; background: #e5e3df; }
         .map-instructions { font-size: 11px; color: #333; margin-top: 4px; text-align: center; background: #e8f0fe; padding: 6px; border-radius: 4px; }
 
         .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; }
@@ -48,7 +48,7 @@
 <body>
 
 <div class="container">
-    <h3>☁️ Cloud Live Route Tracker (Google Maps)</h3>
+    <h3>☁️ Cloud Live Route Tracker (Dual Pin Engine)</h3>
 
     <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee;">
         <div class="form-group">
@@ -68,16 +68,19 @@
             <input type="file" id="housePhoto" accept="image/*">
         </div>
         
-        <button class="btn btn-gps" onclick="getExactPinPoint()">🎯 1-2m නිවැරදි Location එක ලබාගන්න</button>
+        <button class="btn btn-gps" onclick="getExactPinPoint()">🎯 1-2m දශමෙටම GPS Location එක ගන්න</button>
         <span id="status" style="font-size:12px; font-weight:bold; display:block; margin-top:4px; text-align:center;"></span>
 
         <div id="map"></div>
-        <div class="map-instructions">💡 <b>Google Maps Engine:</b> Marker එක Drag කර නිවැරදිම ගෙදර වහලය උඩට තබන්න.</div>
+        <div class="map-instructions">
+            🔴 <b>රතු Marker:</b> ඔබ දැනට ඉන්න නිවැරදි තැන (වෙනස් කළ නොහැක)<br>
+            🟢 <b>කොළ Marker:</b> සේව් කිරීමට අවශ්‍ය තැනට Drag කරන්න (Save වෙන ස්ථානය)
+        </div>
 
         <input type="hidden" id="lat">
         <input type="hidden" id="lng">
 
-        <button class="btn btn-save" onclick="saveCustomer()">💾 ඡායාරූපය සමග Cloud සේව් කරන්න</button>
+        <button class="btn btn-save" onclick="saveCustomer()">💾 🟢 කොළ පාට Location එක Cloud සේව් කරන්න</button>
         <button class="btn btn-reset" onclick="resetForm()">🔄 Form එක Clean කරන්න (Reset)</button>
     </div>
 
@@ -95,7 +98,7 @@
 
 <div id="toast">✅ Cloud එකට සේව් විය!</div>
 
-<!-- Optimized Ultra-Fast Google Maps SDK -->
+<!-- Google Maps SDK -->
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNYXeeKPX9iLkttdcNrJLV6L7bq1sfOqY&callback=initMap&loading=async" async defer></script>
 
 <!-- Firebase SDK Integration -->
@@ -103,7 +106,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // Firebase Project Config
+    // Firebase Credentials
     const firebaseConfig = {
         apiKey: "AIzaSyDgYI09PYhueTjCD8r2I8mN9AfN8p0ARkg",
         authDomain: "nadee-enterprises.firebaseapp.com",
@@ -120,13 +123,15 @@
     const dbRef = ref(db, 'customers');
 
     let customers = [];
-    let map, googleMarker;
+    let map;
+    let redLiveMarker = null;   // Fixed User Location (Red)
+    let greenSaveMarker = null; // Editable Save Location (Green)
     let watchId = null;
 
     const SAVE_PIN = "1234";
     const DELETE_PIN = "1234";
 
-    // Fast Load Google Maps Engine
+    // Google Maps Core Engine
     window.initMap = function() {
         const defaultCenter = { lat: 7.8731, lng: 80.7718 };
         
@@ -135,19 +140,38 @@
             center: defaultCenter,
             mapTypeId: google.maps.MapTypeId.ROADMAP,
             mapTypeControl: true,
-            gestureHandling: 'greedy', // Mobile touch responsiveness speedup
+            gestureHandling: 'greedy',
             mapTypeControlOptions: {
                 style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
                 position: google.maps.ControlPosition.TOP_RIGHT
             }
         });
 
+        // Map එක උඩ Click කළ විට කොළ Marker එක එතැනට යවයි
         map.addListener("click", (e) => {
-            updateGoogleMarker(e.latLng.lat(), e.latLng.lng());
+            updateGreenMarker(e.latLng.lat(), e.latLng.lng());
         });
     };
 
-    function updateGoogleMarker(lat, lng) {
+    // 🔴 රතු Marker එක (වෙනස් කළ නොහැක)
+    function updateRedMarker(lat, lng) {
+        const pos = { lat: parseFloat(lat), lng: parseFloat(lng) };
+
+        if (redLiveMarker) {
+            redLiveMarker.setPosition(pos);
+        } else {
+            redLiveMarker = new google.maps.Marker({
+                position: pos,
+                map: map,
+                draggable: false, //🔒 වෙනස් කළ නොහැක
+                title: "ඔබ දැනට සිටින ස්ථානය (Fixed Live Position)",
+                icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+            });
+        }
+    }
+
+    // 🟢 කොළ Marker එක (Drag කළ හැක - සේව් වෙන Location එක)
+    function updateGreenMarker(lat, lng) {
         const exactLat = parseFloat(lat).toFixed(7);
         const exactLng = parseFloat(lng).toFixed(7);
 
@@ -156,33 +180,32 @@
 
         const pos = { lat: parseFloat(exactLat), lng: parseFloat(exactLng) };
 
-        if (googleMarker) {
-            googleMarker.setPosition(pos);
+        if (greenSaveMarker) {
+            greenSaveMarker.setPosition(pos);
         } else {
-            googleMarker = new google.maps.Marker({
+            greenSaveMarker = new google.maps.Marker({
                 position: pos,
                 map: map,
-                draggable: true,
+                draggable: true, //🔓 වෙනස් (Drag) කළ හැක
+                title: "සේව් වන ස්ථානය (Drag කරන්න)",
+                icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
                 animation: google.maps.Animation.DROP
             });
 
-            googleMarker.addListener("dragend", (e) => {
-                updateGoogleMarker(e.latLng.lat(), e.latLng.lng());
+            greenSaveMarker.addListener("dragend", (e) => {
+                updateGreenMarker(e.latLng.lat(), e.latLng.lng());
             });
         }
-
-        map.setCenter(pos);
-        map.setZoom(19); // Ultra-close zoom for 1-2m accuracy targeting
     }
 
-    // High Accuracy Continuous GPS Tracker
+    // High Accuracy GPS Tracker (1-2m)
     window.getExactPinPoint = function() {
         const status = document.getElementById('status');
-        status.innerText = "📡 GPS Signals සම්බන්ධ වෙමින් පවතී... (කරුණාකර තත්පර කිහිපයක් රැඳී සිටින්න)";
+        status.innerText = "📡 GPS Signals පිරිසිදු කරමින් 1-2m precision එකට සම්බන්ධ වේ...";
         status.style.color = "#f9ab00";
 
         if (!navigator.geolocation) {
-            status.innerText = "❌ ඔබේ ෆෝන් එකේ GPS පහසුකම නොමැත.";
+            status.innerText = "❌ ඔබේ දුරකථනයේ GPS පහසුකම නොමැත.";
             return;
         }
 
@@ -190,23 +213,33 @@
             navigator.geolocation.clearWatch(watchId);
         }
 
-        // Realtime precision tracking loop for 1m-2m pinpoint accuracy
         watchId = navigator.geolocation.watchPosition(
             (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
                 const acc = Math.round(pos.coords.accuracy);
-                updateGoogleMarker(pos.coords.latitude, pos.coords.longitude);
-                
-                status.innerText = `🎯 නිවැරදි බව (Accuracy): ~${acc}m (${acc <= 5 ? "ඉතාමත් නිවැරදියි ✅" : "GPS Signal පිරිසිදු වෙමින්... ⏳"})`;
+
+                // 🔴 රතු marker එක තමන් ඉන්න තැනට තබයි
+                updateRedMarker(lat, lng);
+
+                // කොළ marker එකක් තවම නැත්නම් එක පාරක් රතු එක උඩින් කොළ එක තබයි
+                if (!greenSaveMarker) {
+                    updateGreenMarker(lat, lng);
+                }
+
+                map.setCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
+                map.setZoom(19); // 1-2m Zoom level
+
+                status.innerText = `🎯 නිවැරදි බව (Accuracy): ~${acc}m (${acc <= 5 ? "ඉතාමත් නිවැරදියි ✅" : "GPS Signal තවදුරටත් පිරිසිදු වේ... ⏳"})`;
                 status.style.color = acc <= 5 ? "green" : "#f9ab00";
 
-                // Stop active watching once accurate enough to save phone battery
-                if (acc <= 3) {
+                if (acc <= 2) {
                     navigator.geolocation.clearWatch(watchId);
                     watchId = null;
                 }
             },
             (err) => {
-                status.innerText = "❌ Phone Location (GPS) සක්‍රීය කර Open Environment එකක සිට උත්සාහ කරන්න.";
+                status.innerText = "❌ Phone Location (GPS) On කර එළිමහනක සිට උත්සාහ කරන්න.";
                 status.style.color = "red";
             },
             {
@@ -217,6 +250,7 @@
         );
     };
 
+    // 1234 PIN Fixed Save Function
     window.saveCustomer = function() {
         const regNo = document.getElementById('regNo').value.trim();
         const name = document.getElementById('custName').value.trim();
@@ -226,13 +260,16 @@
         const photoInput = document.getElementById('housePhoto');
 
         if (!regNo || !name || !lat || !lng) {
-            alert("ලියාපදිංචි අංකය, නම සහ Location එක ලබාගන්න!");
+            alert("කරුණාකර ලියාපදිංචි අංකය, නම සහ 🟢 කොළ පාට Location එක සකස් කරන්න!");
             return;
         }
 
         const enteredPin = prompt("🔒 දත්ත සේව් කිරීමට Security PIN එක ඇතුළත් කරන්න:");
-        if (enteredPin !== SAVE_PIN) {
-            if (enteredPin !== null) alert("❌ Security PIN එක වැරදියි!");
+        
+        // Fix for 1234 PIN check
+        if (enteredPin === null) return; // Cancel කලා නම් නවත්න
+        if (String(enteredPin).trim() !== SAVE_PIN) {
+            alert("❌ Security PIN එක වැරදියි! (නිවැරදි PIN එක: 1234)");
             return;
         }
 
@@ -250,13 +287,13 @@
     function uploadToCloud(regNo, name, phone, lat, lng, photo) {
         push(dbRef, { regNo, name, phone, lat, lng, photo })
             .then(() => {
-                showToast("☁️ Cloud එකට සේව් විය!");
+                showToast("☁️ Cloud එකට සාර්ථකව සේව් විය!");
                 resetForm();
             })
-            .catch((err) => alert("Cloud Error: " + err.message));
+            .catch((err) => alert("Cloud Save Error: " + err.message));
     }
 
-    // Live Firebase Data Listener
+    // Realtime Cloud Data Listener
     onValue(dbRef, (snapshot) => {
         customers = [];
         snapshot.forEach((childSnapshot) => {
@@ -265,14 +302,16 @@
         renderCustomers(customers);
     });
 
+    // Delete Function with 1234 PIN
     window.deleteCustomer = function(key) {
         const enteredPin = prompt("🔒 ඩිලීට් කිරීමට Security PIN එක ඇතුළත් කරන්න:");
-        if (enteredPin === DELETE_PIN) {
+        if (enteredPin === null) return;
+        if (String(enteredPin).trim() === DELETE_PIN) {
             remove(ref(db, `customers/${key}`))
                 .then(() => showToast("🗑️ Cloud එකෙන් ඩිලීට් විය!"))
                 .catch((err) => alert("Error: " + err.message));
-        } else if (enteredPin !== null) {
-            alert("❌ PIN අංකය වැරදියි!");
+        } else {
+            alert("❌ PIN අංකය වැරදියි! (PIN: 1234)");
         }
     };
 
@@ -290,7 +329,9 @@
             watchId = null;
         }
 
-        if (googleMarker) { googleMarker.setMap(null); googleMarker = null; }
+        if (redLiveMarker) { redLiveMarker.setMap(null); redLiveMarker = null; }
+        if (greenSaveMarker) { greenSaveMarker.setMap(null); greenSaveMarker = null; }
+        
         map.setCenter({ lat: 7.8731, lng: 80.7718 });
         map.setZoom(7);
     };
