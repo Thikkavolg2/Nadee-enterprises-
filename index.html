@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Route & Photo Tracker</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <title>Cloud Customer Route & Photo Tracker (Google Maps Engine)</title>
     
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -21,31 +19,26 @@
         .btn-save { background-color: #1a73e8; color: white; }
         .btn-reset { background-color: #6c757d; color: white; }
         .btn-delete { background-color: #d93025; color: white; font-size: 12px; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; float: right; font-weight: bold; }
-        .btn-delete:hover { background-color: #b3261e; }
         
-        #map { height: 300px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; z-index: 1; }
+        #map { height: 320px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; }
         .map-instructions { font-size: 11px; color: #333; margin-top: 4px; text-align: center; background: #e8f0fe; padding: 6px; border-radius: 4px; }
 
         .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; }
         .card h4 { margin: 0 0 4px 0; font-size: 16px; color: #222; width: 75%; }
         .card p { margin: 2px 0; font-size: 13px; color: #555; }
         
-        /* Photo & Pop-up Styles */
-        .house-img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #ddd; cursor: pointer; transition: 0.2s; }
-        .house-img:hover { opacity: 0.85; }
-        
+        .house-img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #ddd; cursor: pointer; }
         .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 8px; font-weight: bold; text-align: center; width: 100%; }
 
-        /* Fullscreen Image Modal (Pop-up) */
         .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
-        .modal-content { max-width: 90%; max-height: 80%; border-radius: 8px; box-shadow: 0 0 15px rgba(255,255,255,0.2); }
-        .close-modal { position: absolute; top: 15px; right: 25px; color: #fff; font-size: 35px; font-weight: bold; cursor: pointer; }
+        .modal-content { max-width: 90%; max-height: 80%; border-radius: 8px; }
+        .close-modal { position: absolute; top: 15px; right: 25px; color: #fff; font-size: 35px; cursor: pointer; }
 
         #toast {
             visibility: hidden; min-width: 250px; background-color: #2e7d32; color: #fff;
             text-align: center; border-radius: 8px; padding: 14px; position: fixed;
             z-index: 999; left: 50%; bottom: 30px; transform: translateX(-50%);
-            font-size: 15px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            font-size: 15px; font-weight: bold;
         }
         #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
@@ -55,7 +48,7 @@
 <body>
 
 <div class="container">
-    <h3>📌 Surveyor & Photo Route Tracker</h3>
+    <h3>☁️ Cloud Live Route Tracker (Google Maps)</h3>
 
     <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee;">
         <div class="form-group">
@@ -79,12 +72,12 @@
         <span id="status" style="font-size:12px; font-weight:bold; display:block; margin-top:4px;"></span>
 
         <div id="map"></div>
-        <div class="map-instructions">💡 Map Control එකෙන් **දල මැප් එක** හෝ **Satellite View** තෝරාගෙන Marker එක Move කරන්න.</div>
+        <div class="map-instructions">💡 <b>Google Maps Engine:</b> උඩ දකුණු පසින් Satellite View එකට මාරු වී Marker එක Drag කර නිවැරදිම තැනට තබන්න.</div>
 
         <input type="hidden" id="lat">
         <input type="hidden" id="lng">
 
-        <button class="btn btn-save" onclick="saveCustomer()">💾 ඡායාරූපය සමග Save කරන්න</button>
+        <button class="btn btn-save" onclick="saveCustomer()">💾 ඡායාරූපය සමග Cloud සේව් කරන්න</button>
         <button class="btn btn-reset" onclick="resetForm()">🔄 Form එක Clean කරන්න (Reset)</button>
     </div>
 
@@ -100,74 +93,89 @@
     <img class="modal-content" id="modalImg">
 </div>
 
-<div id="toast">✅ දත්ත සාර්ථකව සුරකින ලදී!</div>
+<div id="toast">✅ Cloud එකට සේව් විය!</div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Google Maps SDK Integration -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNYXeeKPX9iLkttdcNrJLV6L7bq1sfOqY&callback=initMap" async defer></script>
 
-<script>
-    let customers = JSON.parse(localStorage.getItem('myCustomers')) || [];
-    let map, marker, accuracyCircle;
+<!-- Firebase SDK Integration -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // 🔒 Passwords / PIN Codes
-    const SAVE_PIN = "1234";   // 🔑 Save කිරීමට අදාළ PIN එක
-    const DELETE_PIN = "1234"; // 🔑 Delete කිරීමට අදාළ PIN එක
+    // 🔑 Installed Your Provided Firebase Project Config
+    const firebaseConfig = {
+        apiKey: "AIzaSyDgYI09PYhueTjCD8r2I8mN9AfN8p0ARkg",
+        authDomain: "nadee-enterprises.firebaseapp.com",
+        databaseURL: "https://nadee-enterprises-default-rtdb.firebaseio.com",
+        projectId: "nadee-enterprises",
+        storageBucket: "nadee-enterprises.firebasestorage.app",
+        messagingSenderId: "640283903084",
+        appId: "1:640283903084:web:a2b47ed0564225d6fd4449",
+        measurementId: "G-TMZPVEJ2RR"
+    };
 
-    function initMap() {
-        const streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
-        const googleHybrid = L.tileLayer('http://{s}.google.com/vt/lyrs=y,m&x={x}&y={y}&z={z}',{
-            maxZoom: 22,
-            subdomains:['mt0','mt1','mt2','mt3']
-        });
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const dbRef = ref(db, 'customers');
 
-        map = L.map('map', {
-            center: [7.8731, 80.7718],
+    let customers = [];
+    let map, googleMarker;
+
+    const SAVE_PIN = "1234";
+    const DELETE_PIN = "1234";
+
+    // Official Google Maps Engine
+    window.initMap = function() {
+        const defaultCenter = { lat: 7.8731, lng: 80.7718 };
+        
+        map = new google.maps.Map(document.getElementById("map"), {
             zoom: 7,
-            layers: [streetMap]
+            center: defaultCenter,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            mapTypeControl: true,
+            mapTypeControlOptions: {
+                style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+                position: google.maps.ControlPosition.TOP_RIGHT
+            }
         });
 
-        const baseMaps = {
-            "🗺️ දල මැප් එක (Road Map)": streetMap,
-            "🛰️ Satellite HD View": googleHybrid
-        };
-
-        L.control.layers(baseMaps).addTo(map);
-
-        map.on('click', function(e) {
-            updateMarkerPosition(e.latlng.lat, e.latlng.lng);
+        map.addListener("click", (e) => {
+            updateGoogleMarker(e.latLng.lat(), e.latLng.lng());
         });
+    };
 
-        setTimeout(() => { map.invalidateSize(); }, 500);
-    }
-
-    function updateMarkerPosition(lat, lng, accuracy = null) {
+    function updateGoogleMarker(lat, lng) {
         const exactLat = parseFloat(lat).toFixed(7);
         const exactLng = parseFloat(lng).toFixed(7);
 
         document.getElementById('lat').value = exactLat;
         document.getElementById('lng').value = exactLng;
 
-        if (marker) {
-            marker.setLatLng([exactLat, exactLng]);
+        const pos = { lat: parseFloat(exactLat), lng: parseFloat(exactLng) };
+
+        if (googleMarker) {
+            googleMarker.setPosition(pos);
         } else {
-            marker = L.marker([exactLat, exactLng], { draggable: true }).addTo(map);
-            marker.on('dragend', function(event) {
-                const pos = marker.getLatLng();
-                updateMarkerPosition(pos.lat, pos.lng);
+            googleMarker = new google.maps.Marker({
+                position: pos,
+                map: map,
+                draggable: true,
+                animation: google.maps.Animation.DROP
+            });
+
+            googleMarker.addListener("dragend", (e) => {
+                updateGoogleMarker(e.latLng.lat(), e.latLng.lng());
             });
         }
 
-        if (accuracy) {
-            if (accuracyCircle) map.removeLayer(accuracyCircle);
-            accuracyCircle = L.circle([exactLat, exactLng], { radius: accuracy, color: '#1a73e8', fillOpacity: 0.15 }).addTo(map);
-        }
-
-        map.setView([exactLat, exactLng], 18);
-        map.invalidateSize();
+        map.setCenter(pos);
+        map.setZoom(19);
     }
 
-    function getExactPinPoint() {
+    window.getExactPinPoint = function() {
         const status = document.getElementById('status');
-        status.innerText = "⏳ සැබෑ Location එක සොයමින් පවතී...";
+        status.innerText = "⏳ සැබෑ Google GPS Location එක සොයමින් පවතී...";
         status.style.color = "#f9ab00";
 
         if (!navigator.geolocation) {
@@ -177,9 +185,8 @@
 
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                const acc = pos.coords.accuracy;
-                updateMarkerPosition(pos.coords.latitude, pos.coords.longitude, acc);
-                status.innerText = `✅ සාර්ථකයි! Accuracy: ~${Math.round(acc)}m`;
+                updateGoogleMarker(pos.coords.latitude, pos.coords.longitude);
+                status.innerText = `✅ සාර්ථකයි! Accuracy: ~${Math.round(pos.coords.accuracy)}m`;
                 status.style.color = "green";
             },
             () => {
@@ -188,10 +195,9 @@
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
-    }
+    };
 
-    // 🔒 SAVE FUNCTION WITH SECURITY PIN
-    function saveCustomer() {
+    window.saveCustomer = function() {
         const regNo = document.getElementById('regNo').value.trim();
         const name = document.getElementById('custName').value.trim();
         const phone = document.getElementById('phone').value.trim();
@@ -204,49 +210,53 @@
             return;
         }
 
-        // Save කිරීමට PIN එක ඉල්ලීම
         const enteredPin = prompt("🔒 දත්ත සේව් කිරීමට Security PIN එක ඇතුළත් කරන්න:");
         if (enteredPin !== SAVE_PIN) {
-            if (enteredPin !== null) alert("❌ Security PIN එක වැරදියි! සේව් කිරීමට අවසර නැත.");
+            if (enteredPin !== null) alert("❌ Security PIN එක වැරදියි!");
             return;
         }
 
         if (photoInput.files && photoInput.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const photoData = e.target.result;
-                storeData(regNo, name, phone, lat, lng, photoData);
+                uploadToCloud(regNo, name, phone, lat, lng, e.target.result);
             };
             reader.readAsDataURL(photoInput.files[0]);
         } else {
-            storeData(regNo, name, phone, lat, lng, null);
+            uploadToCloud(regNo, name, phone, lat, lng, null);
         }
+    };
+
+    function uploadToCloud(regNo, name, phone, lat, lng, photo) {
+        push(dbRef, { regNo, name, phone, lat, lng, photo })
+            .then(() => {
+                showToast("☁️ Cloud එකට සේව් විය!");
+                resetForm();
+            })
+            .catch((err) => alert("Cloud Error: " + err.message));
     }
 
-    function storeData(regNo, name, phone, lat, lng, photo) {
-        const newCustomer = { id: Date.now(), regNo, name, phone, lat, lng, photo };
-        customers.unshift(newCustomer);
-        localStorage.setItem('myCustomers', JSON.stringify(customers));
+    // Realtime Multi-Device Sync Engine
+    onValue(dbRef, (snapshot) => {
+        customers = [];
+        snapshot.forEach((childSnapshot) => {
+            customers.unshift({ firebaseKey: childSnapshot.key, ...childSnapshot.val() });
+        });
+        renderCustomers(customers);
+    });
 
-        showToast("✅ දත්ත සහ ඡායාරූපය Save විය!");
-        resetForm();
-        renderCustomers();
-    }
-
-    // 🔒 DELETE FUNCTION WITH SECURITY PIN
-    function deleteCustomer(id) {
-        const enteredPin = prompt("🔒 දත්ත ඩිලීට් කිරීමට Security PIN එක ඇතුළත් කරන්න:");
+    window.deleteCustomer = function(key) {
+        const enteredPin = prompt("🔒 ඩිලීට් කිරීමට Security PIN එක ඇතුළත් කරන්න:");
         if (enteredPin === DELETE_PIN) {
-            customers = customers.filter(c => c.id !== id);
-            localStorage.setItem('myCustomers', JSON.stringify(customers));
-            showToast("🗑️ දත්ත සාර්ථකව ඩිලීට් විය!");
-            renderCustomers();
+            remove(ref(db, `customers/${key}`))
+                .then(() => showToast("🗑️ Cloud එකෙන් ඩිලීට් විය!"))
+                .catch((err) => alert("Error: " + err.message));
         } else if (enteredPin !== null) {
-            alert("❌ Security PIN එක වැරදියි! ඩිලීට් කිරීමට අවසර නැත.");
+            alert("❌ PIN අංකය වැරදියි!");
         }
-    }
+    };
 
-    function resetForm() {
+    window.resetForm = function() {
         document.getElementById('regNo').value = '';
         document.getElementById('custName').value = '';
         document.getElementById('phone').value = '';
@@ -255,12 +265,10 @@
         document.getElementById('lng').value = '';
         document.getElementById('status').innerText = '';
         
-        if (marker) { map.removeLayer(marker); marker = null; }
-        if (accuracyCircle) { map.removeLayer(accuracyCircle); accuracyCircle = null; }
-        
-        map.setView([7.8731, 80.7718], 7);
-        setTimeout(() => { map.invalidateSize(); }, 200);
-    }
+        if (googleMarker) { googleMarker.setMap(null); googleMarker = null; }
+        map.setCenter({ lat: 7.8731, lng: 80.7718 });
+        map.setZoom(7);
+    };
 
     function showToast(msg) {
         const toast = document.getElementById("toast");
@@ -269,34 +277,31 @@
         setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
     }
 
-    // 🖼️ Image Pop-up Functions
-    function openImageModal(imgSrc) {
-        const modal = document.getElementById("imageModal");
-        const modalImg = document.getElementById("modalImg");
-        modal.style.display = "flex";
-        modalImg.src = imgSrc;
-    }
+    window.openImageModal = function(imgSrc) {
+        document.getElementById("imageModal").style.display = "flex";
+        document.getElementById("modalImg").src = imgSrc;
+    };
 
-    function closeImageModal() {
+    window.closeImageModal = function() {
         document.getElementById("imageModal").style.display = "none";
-    }
+    };
 
-    function renderCustomers(list = customers) {
+    function renderCustomers(list) {
         const container = document.getElementById('customerList');
         container.innerHTML = '';
 
-        if (list.length === 0) {
+        if (!list || list.length === 0) {
             container.innerHTML = '<p style="text-align:center; color:#777; margin-top:15px;">දත්ත කිසිවක් නැත.</p>';
             return;
         }
 
         list.forEach(c => {
             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
-            const imageHtml = c.photo ? `<img src="${c.photo}" class="house-img" onclick="openImageModal('${c.photo}')" alt="House Photo" title="Click to enlarge">` : '';
+            const imageHtml = c.photo ? `<img src="${c.photo}" class="house-img" onclick="openImageModal('${c.photo}')" alt="House Photo">` : '';
 
             container.innerHTML += `
                 <div class="card">
-                    <button class="btn-delete" onclick="deleteCustomer(${c.id})">🗑️ ඩිලීට්</button>
+                    <button class="btn-delete" onclick="deleteCustomer('${c.firebaseKey}')">🗑️ ඩිලීට්</button>
                     <h4>[${c.regNo}] ${c.name}</h4>
                     <p>📞 ${c.phone || 'දුරකථන අංකයක් නැත'}</p>
                     <p style="font-size:11px; color:#888;">📍 Lat: ${c.lat}, Lng: ${c.lng}</p>
@@ -307,18 +312,13 @@
         });
     }
 
-    function searchCustomer() {
+    window.searchCustomer = function() {
         const q = document.getElementById('search').value.toLowerCase();
         const filtered = customers.filter(c => 
             c.regNo.toLowerCase().includes(q) || 
             c.name.toLowerCase().includes(q)
         );
         renderCustomers(filtered);
-    }
-
-    window.onload = function() {
-        initMap();
-        renderCustomers();
     };
 </script>
 
