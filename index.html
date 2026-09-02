@@ -1,402 +1,187 @@
 <!DOCTYPE html>
-<html lang="si">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Customer Route Tracker - Final Fixed</title>
-    
+    <title>Fast History View App</title>
     <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #f0f2f5; margin: 0; padding: 10px; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        h3 { margin: 0 0 10px 0; color: #1a73e8; font-size: 18px; text-align: center; }
-        .form-group { margin-bottom: 8px; }
-        label { font-weight: 600; font-size: 13px; color: #444; display: block; margin-bottom: 2px; }
-        input[type="text"], input[type="file"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; outline: none; background: #fff; }
-        
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; }
-        .btn-gps { background-color: #f9ab00; color: #000; }
-        .btn-save { background-color: #1a73e8; color: white; }
-        .btn-reset { background-color: #6c757d; color: white; }
-        .btn-delete { background-color: #d93025; color: white; font-size: 12px; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; float: right; font-weight: bold; }
-        
-        #map { height: 340px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; background: #e5e3df; }
-        .map-instructions { font-size: 11px; color: #333; margin-top: 4px; text-align: center; background: #e8f0fe; padding: 6px; border-radius: 4px; }
-
-        .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; }
-        .card h4 { margin: 0 0 4px 0; font-size: 16px; color: #222; width: 75%; }
-        .card p { margin: 2px 0; font-size: 13px; color: #555; }
-        
-        .house-img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #ddd; cursor: pointer; }
-        .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 8px; font-weight: bold; text-align: center; width: 100%; }
-
-        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
-        .modal-content { max-width: 90%; max-height: 80%; border-radius: 8px; }
-        .close-modal { position: absolute; top: 15px; right: 25px; color: #fff; font-size: 35px; cursor: pointer; }
-
-        #toast {
-            visibility: hidden; min-width: 250px; background-color: #2e7d32; color: #fff;
-            text-align: center; border-radius: 8px; padding: 14px; position: fixed;
-            z-index: 999; left: 50%; bottom: 30px; transform: translateX(-50%);
-            font-size: 15px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
         }
-        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
-        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+        body {
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 15px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        /* Item History Styling */
+        .history-list {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .history-card {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .history-card:hover {
+            background: #eef2f5;
+        }
+        .item-title {
+            font-weight: bold;
+            font-size: 16px;
+            color: #0275d8;
+        }
+        .item-subtext {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        /* Modal (Popup) Styling */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0,0,0,0.6); 
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 450px;
+            width: 100%;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .close-btn {
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            color: #000;
+        }
+        .modal-img-container {
+            width: 100%;
+            height: 250px;
+            background-color: #eee;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .modal-img-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h3>☁️ Cloud Live Route Tracker (Dual Pin Precision)</h3>
+    <h2>History List</h2>
+    
+    <!-- History Cards Display Area -->
+    <div class="history-list" id="historyContainer"></div>
 
-    <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee;">
-        <div class="form-group">
-            <label>ලියාපදිංචි අංකය (Reg No) *</label>
-            <input type="text" id="regNo" placeholder="CUS-001" required>
+    <!-- Details and Image Modal (Popup) -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h3 id="modalTitle">--</h3>
+            <p id="modalDate" style="color: #888; font-size: 12px;"></p>
+            <p id="modalDescription">--</p>
+            
+            <div class="modal-img-container">
+                <img id="modalImage" src="" alt="Loading Image...">
+            </div>
         </div>
-        <div class="form-group">
-            <label>නම *</label>
-            <input type="text" id="custName" placeholder="නම ඇතුළත් කරන්න">
-        </div>
-        <div class="form-group">
-            <label>දුරකථනය / විස්තර</label>
-            <input type="text" id="phone" placeholder="07X XXX XXXX">
-        </div>
-        <div class="form-group">
-            <label>ගෙදර ඡායාරූපය (House Photo)</label>
-            <input type="file" id="housePhoto" accept="image/*">
-        </div>
-        
-        <button class="btn btn-gps" onclick="getExactPinPoint()">🎯 1-2m දශමෙටම GPS Location එක ගන්න</button>
-        <span id="status" style="font-size:12px; font-weight:bold; display:block; margin-top:4px; text-align:center;"></span>
-
-        <div id="map"></div>
-        <div class="map-instructions">
-            🔴 <b>රතු Marker:</b> ඔබ දැනට ඉන්න නිවැරදි තැන (වෙනස් කළ නොහැක)<br>
-            🟢 <b>කොළ Marker:</b> සේව් කිරීමට අවශ්‍ය තැනට Drag කරන්න (Save වෙන ස්ථානය)
-        </div>
-
-        <input type="hidden" id="lat">
-        <input type="hidden" id="lng">
-
-        <button class="btn btn-save" onclick="saveCustomer()">💾 🟢 කොළ පාට Location එක Cloud සේව් කරන්න</button>
-        <button class="btn btn-reset" onclick="resetForm()">🔄 Form එක Clean කරන්න (Reset)</button>
     </div>
 
-    <div style="margin-top: 15px;">
-        <input type="text" id="search" onkeyup="searchCustomer()" placeholder="🔍 අංකයෙන් හෝ නමෙන් සොයන්න...">
-    </div>
-
-    <div id="customerList"></div>
-</div>
-
-<div id="imageModal" class="modal" onclick="closeImageModal()">
-    <span class="close-modal">&times;</span>
-    <img class="modal-content" id="modalImg">
-</div>
-
-<div id="toast">✅ Cloud එකට සේව් විය!</div>
-
-<!-- Google Maps SDK -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNYXeeKPX9iLkttdcNrJLV6L7bq1sfOqY&callback=initMap&loading=async" async defer></script>
-
-<!-- Firebase SDK Integration -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyDgYI09PYhueTjCD8r2I8mN9AfN8p0ARkg",
-        authDomain: "nadee-enterprises.firebaseapp.com",
-        databaseURL: "https://nadee-enterprises-default-rtdb.firebaseio.com",
-        projectId: "nadee-enterprises",
-        storageBucket: "nadee-enterprises.firebasestorage.app",
-        messagingSenderId: "640283903084",
-        appId: "1:640283903084:web:a2b47ed0564225d6fd4449",
-        measurementId: "G-TMZPVEJ2RR"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const dbRef = ref(db, 'customers');
-
-    let customers = [];
-    let map;
-    let redLiveMarker = null;
-    let greenSaveMarker = null;
-    let watchId = null;
-
-    const SAVE_PIN = "1234";
-    const DELETE_PIN = "1234";
-
-    // Global Functions Connection
-    window.initMap = function() {
-        const defaultCenter = { lat: 7.8731, lng: 80.7718 };
-        
-        map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 7,
-            center: defaultCenter,
-            mapTypeId: google.maps.MapTypeId.ROADMAP,
-            mapTypeControl: true,
-            gestureHandling: 'greedy',
-            mapTypeControlOptions: {
-                style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-                position: google.maps.ControlPosition.TOP_RIGHT
-            }
-        });
-
-        map.addListener("click", (e) => {
-            updateGreenMarker(e.latLng.lat(), e.latLng.lng());
-        });
-    };
-
-    function updateRedMarker(lat, lng) {
-        const pos = { lat: parseFloat(lat), lng: parseFloat(lng) };
-
-        if (redLiveMarker) {
-            redLiveMarker.setPosition(pos);
-        } else {
-            redLiveMarker = new google.maps.Marker({
-                position: pos,
-                map: map,
-                draggable: false,
-                title: "ඔබ දැනට සිටින ස්ථානය (Fixed Live Position)",
-                icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
-            });
-        }
-    }
-
-    function updateGreenMarker(lat, lng) {
-        const exactLat = parseFloat(lat).toFixed(7);
-        const exactLng = parseFloat(lng).toFixed(7);
-
-        document.getElementById('lat').value = exactLat;
-        document.getElementById('lng').value = exactLng;
-
-        const pos = { lat: parseFloat(exactLat), lng: parseFloat(exactLng) };
-
-        if (greenSaveMarker) {
-            greenSaveMarker.setPosition(pos);
-        } else {
-            greenSaveMarker = new google.maps.Marker({
-                position: pos,
-                map: map,
-                draggable: true,
-                title: "සේව් වන ස්ථානය (Drag කරන්න)",
-                icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
-                animation: google.maps.Animation.DROP
-            });
-
-            greenSaveMarker.addListener("dragend", (e) => {
-                updateGreenMarker(e.latLng.lat(), e.latLng.lng());
-            });
-        }
-    }
-
-    window.getExactPinPoint = function() {
-        const status = document.getElementById('status');
-        status.innerText = "📡 GPS Signals පිරිසිදු කරමින් 1-2m precision එකට සම්බන්ධ වේ...";
-        status.style.color = "#f9ab00";
-
-        if (!navigator.geolocation) {
-            status.innerText = "❌ ඔබේ දුරකථනයේ GPS පහසුකම නොමැත.";
-            return;
-        }
-
-        if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId);
-        }
-
-        watchId = navigator.geolocation.watchPosition(
-            (pos) => {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                const acc = Math.round(pos.coords.accuracy);
-
-                updateRedMarker(lat, lng);
-
-                if (!greenSaveMarker) {
-                    updateGreenMarker(lat, lng);
-                }
-
-                map.setCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
-                map.setZoom(19);
-
-                status.innerText = `🎯 නිවැරදි බව (Accuracy): ~${acc}m (${acc <= 5 ? "ඉතාමත් නිවැරදියි ✅" : "GPS Signal තවදුරටත් පිරිසිදු වේ... ⏳"})`;
-                status.style.color = acc <= 5 ? "green" : "#f9ab00";
-
-                if (acc <= 2) {
-                    navigator.geolocation.clearWatch(watchId);
-                    watchId = null;
-                }
-            },
-            (err) => {
-                status.innerText = "❌ Phone Location (GPS) On කර එළිමහනක සිට උත්සාහ කරන්න.";
-                status.style.color = "red";
+    <script>
+        // Sample Firebase / Database History Data
+        const historyData = [
+            {
+                id: "1",
+                title: "Item 01 Details",
+                date: "2026-09-02 10:00 AM",
+                description: "මෙතන පළමු Item එකේ විස්තර සටහන් වේ.",
+                imageUrl: "https://via.placeholder.com/400x300?text=Item+1+Image"
             },
             {
-                enableHighAccuracy: true,
-                timeout: 20000,
-                maximumAge: 0
+                id: "2",
+                title: "Item 02 Details",
+                date: "2026-09-02 11:30 AM",
+                description: "මෙතන දෙවන Item එකේ විස්තර සටහන් වේ.",
+                imageUrl: "https://via.placeholder.com/400x300?text=Item+2+Image"
             }
-        );
-    };
+        ];
 
-    // 100% Fixed Save Engine
-    window.saveCustomer = function() {
-        const regNo = document.getElementById('regNo').value.trim();
-        const name = document.getElementById('custName').value.trim();
-        const phone = document.getElementById('phone').value.trim();
-        const lat = document.getElementById('lat').value;
-        const lng = document.getElementById('lng').value;
-        const photoInput = document.getElementById('housePhoto');
+        // Load History Items without Loading Images initially
+        function loadHistory() {
+            const container = document.getElementById('historyContainer');
+            container.innerHTML = "";
 
-        if (!regNo || !name) {
-            alert("කරුණාකර ලියාපදිංචි අංකය සහ නම ඇතුළත් කරන්න!");
-            return;
-        }
-
-        if (!lat || !lng) {
-            alert("කරුණාකර 🎯 GPS Button එක ඔබා 🟢 කොළ පාට Location Pin එක සකස් කරගන්න!");
-            return;
-        }
-
-        const enteredPin = prompt("🔒 දත්ත සේව් කිරීමට Security PIN එක ඇතුළත් කරන්න:");
-        
-        if (enteredPin === null) return;
-        if (String(enteredPin).trim() !== SAVE_PIN) {
-            alert("❌ Security PIN එක වැරදියි! (නිවැරදි PIN එක: 1234)");
-            return;
-        }
-
-        if (photoInput.files && photoInput.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                uploadToCloud(regNo, name, phone, lat, lng, e.target.result);
-            };
-            reader.readAsDataURL(photoInput.files[0]);
-        } else {
-            uploadToCloud(regNo, name, phone, lat, lng, null);
-        }
-    };
-
-    function uploadToCloud(regNo, name, phone, lat, lng, photo) {
-        const customerData = {
-            regNo: regNo,
-            name: name,
-            phone: phone || '',
-            lat: lat,
-            lng: lng,
-            photo: photo || '',
-            timestamp: Date.now()
-        };
-
-        push(dbRef, customerData)
-            .then(() => {
-                showToast("✅ Cloud එකට සේව් විය!");
-                resetForm();
-            })
-            .catch((err) => {
-                alert("Cloud Save Error: " + err.message);
+            historyData.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'history-card';
+                // Image එක Load කරන්නේ නැත. Details පමණක් පෙන්වයි
+                card.innerHTML = `
+                    <div class="item-title">${item.title}</div>
+                    <div class="item-subtext">Date: ${item.date}</div>
+                `;
+                
+                // Touch/Click කළ විට Modal එක Open වීම
+                card.onclick = () => openModal(index);
+                container.appendChild(card);
             });
-    }
-
-    // Realtime Cloud Synchronization
-    onValue(dbRef, (snapshot) => {
-        customers = [];
-        snapshot.forEach((childSnapshot) => {
-            customers.unshift({ firebaseKey: childSnapshot.key, ...childSnapshot.val() });
-        });
-        renderCustomers(customers);
-    });
-
-    window.deleteCustomer = function(key) {
-        const enteredPin = prompt("🔒 ඩිලීට් කිරීමට Security PIN එක ඇතුළත් කරන්න:");
-        if (enteredPin === null) return;
-        if (String(enteredPin).trim() === DELETE_PIN) {
-            remove(ref(db, `customers/${key}`))
-                .then(() => showToast("🗑️ Cloud එකෙන් ඩිලීට් විය!"))
-                .catch((err) => alert("Error: " + err.message));
-        } else {
-            alert("❌ PIN අංකය වැරදියි! (PIN: 1234)");
-        }
-    };
-
-    window.resetForm = function() {
-        document.getElementById('regNo').value = '';
-        document.getElementById('custName').value = '';
-        document.getElementById('phone').value = '';
-        document.getElementById('housePhoto').value = '';
-        document.getElementById('lat').value = '';
-        document.getElementById('lng').value = '';
-        document.getElementById('status').innerText = '';
-        
-        if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId);
-            watchId = null;
         }
 
-        if (redLiveMarker) { redLiveMarker.setMap(null); redLiveMarker = null; }
-        if (greenSaveMarker) { greenSaveMarker.setMap(null); greenSaveMarker = null; }
-        
-        if (map) {
-            map.setCenter({ lat: 7.8731, lng: 80.7718 });
-            map.setZoom(7);
-        }
-    };
+        // Open Modal and Load Image on Demand
+        function openModal(index) {
+            const item = historyData[index];
+            
+            document.getElementById('modalTitle').innerText = item.title;
+            document.getElementById('modalDate').innerText = item.date;
+            document.getElementById('modalDescription').innerText = item.description;
+            
+            // Touch කළ පසු පමණක් Image URL එක Assign වේ
+            document.getElementById('modalImage').src = item.imageUrl;
 
-    function showToast(msg) {
-        const toast = document.getElementById("toast");
-        toast.innerText = msg;
-        toast.className = "show";
-        setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
-    }
-
-    window.openImageModal = function(imgSrc) {
-        document.getElementById("imageModal").style.display = "flex";
-        document.getElementById("modalImg").src = imgSrc;
-    };
-
-    window.closeImageModal = function() {
-        document.getElementById("imageModal").style.display = "none";
-    };
-
-    function renderCustomers(list) {
-        const container = document.getElementById('customerList');
-        container.innerHTML = '';
-
-        if (!list || list.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#777; margin-top:15px;">දත්ත කිසිවක් නැත.</p>';
-            return;
+            document.getElementById('detailModal').style.display = 'flex';
         }
 
-        list.forEach(c => {
-            const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
-            const imageHtml = c.photo ? `<img src="${c.photo}" class="house-img" onclick="openImageModal('${c.photo}')" alt="House Photo">` : '';
+        // Close Modal
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+            // Modal එක Close කළ පසු Image එක Clear කරයි
+            document.getElementById('modalImage').src = "";
+        }
 
-            container.innerHTML += `
-                <div class="card">
-                    <button class="btn-delete" onclick="deleteCustomer('${c.firebaseKey}')">🗑️ ඩිලීට්</button>
-                    <h4>[${c.regNo}] ${c.name}</h4>
-                    <p>📞 ${c.phone || 'දුරකථන අංකයක් නැත'}</p>
-                    <p style="font-size:11px; color:#888;">📍 Lat: ${c.lat}, Lng: ${c.lng}</p>
-                    ${imageHtml}
-                    <a href="${mapsUrl}" target="_blank" class="btn-nav">🚗 කෙළින්ම ගෙදරටම Route එක දාන්න (Google Maps)</a>
-                </div>
-            `;
-        });
-    }
-
-    window.searchCustomer = function() {
-        const q = document.getElementById('search').value.toLowerCase();
-        const filtered = customers.filter(c => 
-            (c.regNo && c.regNo.toLowerCase().includes(q)) || 
-            (c.name && c.name.toLowerCase().includes(q))
-        );
-        renderCustomers(filtered);
-    };
-</script>
-
+        // Initialize History on Load
+        loadHistory();
+    </script>
 </body>
 </html>
