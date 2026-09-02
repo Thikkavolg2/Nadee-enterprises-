@@ -24,19 +24,13 @@
         .map-instructions { font-size: 11px; color: #333; margin-top: 4px; text-align: center; background: #e8f0fe; padding: 6px; border-radius: 4px; }
 
         .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; }
-        .card-header { cursor: pointer; }
-        .card h4 { margin: 0 0 4px 0; font-size: 16px; color: #222; width: 70%; display: inline-block; }
+        .card h4 { margin: 0 0 4px 0; font-size: 16px; color: #222; width: 70%; }
         .card p { margin: 2px 0; font-size: 13px; color: #555; }
-        .card-details { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ddd; }
-        .expand-btn { font-size: 12px; color: #1a73e8; font-weight: bold; margin-top: 4px; display: block; }
         
-        .load-photo-btn { display: inline-block; width: 100%; text-align: center; background: #e8f0fe; color: #1a73e8; padding: 8px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; border: 1px dashed #1a73e8; margin-top: 8px; }
-        .house-img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #ddd; cursor: pointer; }
+        .btn-link-photo { display: block; text-align: center; background: #fff3cd; color: #856404; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: bold; text-decoration: none; border: 1px solid #ffeeba; margin-top: 8px; cursor: pointer; }
+        .btn-link-photo:hover { background: #ffe8a1; }
+        
         .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 8px; font-weight: bold; text-align: center; width: 100%; }
-
-        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
-        .modal-content { max-width: 90%; max-height: 80%; border-radius: 8px; }
-        .close-modal { position: absolute; top: 15px; right: 25px; color: #fff; font-size: 35px; cursor: pointer; }
 
         #toast {
             visibility: hidden; min-width: 250px; background-color: #2e7d32; color: #fff;
@@ -93,11 +87,6 @@
     </div>
 
     <div id="customerList"></div>
-</div>
-
-<div id="imageModal" class="modal" onclick="closeImageModal()">
-    <span class="close-modal">&times;</span>
-    <img class="modal-content" id="modalImg">
 </div>
 
 <div id="toast">✅ Cloud එකට සේව් විය!</div>
@@ -357,38 +346,16 @@
         setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
     }
 
-    window.openImageModal = function(imgSrc) {
-        document.getElementById("imageModal").style.display = "flex";
-        document.getElementById("modalImg").src = imgSrc;
-    };
-
-    window.closeImageModal = function() {
-        document.getElementById("imageModal").style.display = "none";
-    };
-
-    // Toggle Details Function
-    window.toggleDetails = function(key) {
-        const detailDiv = document.getElementById('details-' + key);
-        const btnText = document.getElementById('btn-text-' + key);
-        if (detailDiv.style.display === "block") {
-            detailDiv.style.display = "none";
-            btnText.innerText = "👇 විස්තර බලන්න";
-        } else {
-            detailDiv.style.display = "block";
-            btnText.innerText = "👆 විස්තර සඟවන්න";
-        }
-    };
-
-    // On-demand Image Loading
-    window.loadPhoto = function(key) {
+    // Open Image directly in a New Tab/Window via Link Click (Zero Overhead on History Load)
+    window.openImageInNewTab = function(key) {
         const cust = customers.find(c => c.firebaseKey === key);
-        const container = document.getElementById('img-container-' + key);
-        if (cust && cust.photo && container) {
-            container.innerHTML = `<img src="${cust.photo}" class="house-img" onclick="openImageModal('${cust.photo}')" alt="House Photo">`;
+        if (cust && cust.photo) {
+            const imageWindow = window.open("");
+            imageWindow.document.write(`<title>[${cust.regNo}] - House Photo</title><body style="margin:0; background:#111; display:flex; align-items:center; justify-content:center; height:100vh;"><img src="${cust.photo}" style="max-width:100%; max-height:100%; border-radius:8px;"></body>`);
         }
     };
 
-    // Fast Rendering Engine
+    // Ultra Fast Rendering Engine (No Images Rendered in History DOM)
     function renderCustomers(list) {
         const container = document.getElementById('customerList');
         container.innerHTML = '';
@@ -400,28 +367,20 @@
 
         list.forEach(c => {
             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
-            const hasPhotoText = c.photo ? ' 📷' : '';
             
-            // Photo Container with Load Permission Link
-            const photoBlock = c.photo 
-                ? `<div id="img-container-${c.firebaseKey}">
-                     <div class="load-photo-btn" onclick="loadPhoto('${c.firebaseKey}')">🖼️ Photo එක Load කරන්න</div>
-                   </div>`
+            // Link to view photo on demand in new window
+            const photoBtn = c.photo 
+                ? `<div class="btn-link-photo" onclick="openImageInNewTab('${c.firebaseKey}')">🖼️ ඡායාරූපය බලන්න (Link)</div>`
                 : '';
 
             container.innerHTML += `
                 <div class="card">
                     <button class="btn-delete" onclick="deleteCustomer('${c.firebaseKey}')">🗑️ ඩිලීට්</button>
-                    <div class="card-header" onclick="toggleDetails('${c.firebaseKey}')">
-                        <h4>[${c.regNo}] ${c.name}${hasPhotoText}</h4>
-                        <p>📞 ${c.phone || 'දුරකථන අංකයක් නැත'}</p>
-                        <span class="expand-btn" id="btn-text-${c.firebaseKey}">👇 විස්තර බලන්න</span>
-                    </div>
-                    <div class="card-details" id="details-${c.firebaseKey}">
-                        <p style="font-size:11px; color:#888;">📍 Lat: ${c.lat}, Lng: ${c.lng}</p>
-                        ${photoBlock}
-                        <a href="${mapsUrl}" target="_blank" class="btn-nav">🚗 කෙළින්ම ගෙදරටම Route එක දාන්න (Google Maps)</a>
-                    </div>
+                    <h4>[${c.regNo}] ${c.name}</h4>
+                    <p>📞 ${c.phone || 'දුරකථන අංකයක් නැත'}</p>
+                    <p style="font-size:11px; color:#888;">📍 Lat: ${c.lat}, Lng: ${c.lng}</p>
+                    ${photoBtn}
+                    <a href="${mapsUrl}" target="_blank" class="btn-nav">🚗 කෙළින්ම ගෙදරටම Route එක දාන්න (Google Maps)</a>
                 </div>
             `;
         });
