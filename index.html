@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Customer Route Tracker - Final Fixed</title>
+    <title>Cloud Customer Route Tracker - Fast Load</title>
     
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -28,7 +28,12 @@
         .card p { margin: 2px 0; font-size: 13px; color: #555; }
         
         .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 8px; font-weight: bold; text-align: center; width: 100%; }
-        .btn-img-link { background-color: #ff9800; color: white; text-decoration: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; display: inline-block; margin-top: 6px; font-weight: bold; text-align: center; width: 100%; }
+        .btn-img-view { background-color: #ff9800; color: white; border: none; padding: 9px 12px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 6px; font-weight: bold; text-align: center; width: 100%; cursor: pointer; }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; flex-direction: column; }
+        .modal-content { max-width: 90%; max-height: 80%; border-radius: 8px; }
+        .close-modal { position: absolute; top: 15px; right: 25px; color: #fff; font-size: 35px; cursor: pointer; }
 
         #toast {
             visibility: hidden; min-width: 250px; background-color: #2e7d32; color: #fff;
@@ -85,6 +90,11 @@
     </div>
 
     <div id="customerList"></div>
+</div>
+
+<div id="imageModal" class="modal" onclick="closeImageModal()">
+    <span class="close-modal">&times;</span>
+    <img class="modal-content" id="modalImg">
 </div>
 
 <div id="toast">✅ Cloud එකට සේව් විය!</div>
@@ -344,7 +354,23 @@
         setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
     }
 
-    // Optimized Direct Link Rendering Engine (No Auto Image Loading)
+    // Modal Image Trigger (On Demand Loading)
+    window.viewPhoto = function(key) {
+        const item = customers.find(c => c.firebaseKey === key);
+        if (item && item.photo) {
+            document.getElementById("modalImg").src = item.photo;
+            document.getElementById("imageModal").style.display = "flex";
+        } else {
+            alert("❌ මෙම Record එකෙහි ඡායාරූපයක් නොමැත.");
+        }
+    };
+
+    window.closeImageModal = function() {
+        document.getElementById("imageModal").style.display = "none";
+        document.getElementById("modalImg").src = "";
+    };
+
+    // Ultra Fast Rendering Engine
     function renderCustomers(list) {
         const container = document.getElementById('customerList');
         container.innerHTML = '';
@@ -357,8 +383,8 @@
         list.forEach(c => {
             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
             
-            // Photo එක ඇත්නම් පමණක් Direct Link Button එක නිර්මාණය වේ (Img Tag නොමැති නිසා auto download නොවේ)
-            const photoButtonHtml = c.photo ? `<a href="${c.photo}" target="_blank" class="btn-img-link">🖼️ ඡායාරූපය Direct Link එකෙන් බලන්න</a>` : '';
+            // Image Tag එකක් නැත, Array එකෙන් On-Demand ලෙස Load වීමට Button එකක් පමණක් ඇතුළත් කර ඇත
+            const photoButtonHtml = c.photo ? `<button class="btn-img-view" onclick="viewPhoto('${c.firebaseKey}')">🖼️ ඡායාරූපය බලන්න</button>` : '';
 
             container.innerHTML += `
                 <div class="card">
