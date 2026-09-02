@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Customer Route Tracker - Final Fixed</title>
+    <title>Cloud Customer Route Tracker - Fast & Data Saver</title>
     
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -19,19 +19,16 @@
         .btn-save { background-color: #1a73e8; color: white; }
         .btn-reset { background-color: #6c757d; color: white; }
         .btn-delete { background-color: #d93025; color: white; font-size: 12px; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; float: right; font-weight: bold; }
+        .btn-load-photo { background-color: #e8f0fe; color: #1a73e8; border: 1px solid #1a73e8; padding: 8px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 6px; }
         
         #map { height: 340px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; background: #e5e3df; }
         .map-instructions { font-size: 11px; color: #333; margin-top: 4px; text-align: center; background: #e8f0fe; padding: 6px; border-radius: 4px; }
 
-        /* Modified Card Style for Smooth & Fast Expandable View */
         .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; }
-        .card-header { cursor: pointer; }
-        .card h4 { margin: 0 0 4px 0; font-size: 16px; color: #222; width: 70%; display: inline-block; }
+        .card h4 { margin: 0 0 4px 0; font-size: 16px; color: #222; width: 75%; }
         .card p { margin: 2px 0; font-size: 13px; color: #555; }
-        .card-details { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ddd; }
-        .expand-btn { font-size: 12px; color: #1a73e8; font-weight: bold; margin-top: 4px; display: block; }
         
-        .house-img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #ddd; cursor: pointer; }
+        .house-img { width: 100%; height: 180px; object-fit: cover; border-radius: 6px; margin-top: 8px; border: 1px solid #ddd; cursor: pointer; display: none; }
         .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 8px; font-weight: bold; text-align: center; width: 100%; }
 
         .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
@@ -103,12 +100,12 @@
 <div id="toast">✅ Cloud එකට සේව් විය!</div>
 
 <!-- Google Maps SDK -->
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNYXeeKPX9iLkttdcNrJLV6L7bq1sfOqY&callback=initMap&loading=async" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNYXeeKPX9iLtttdcNrJLV6L7bq1sfOqY&callback=initMap&loading=async" async defer></script>
 
 <!-- Firebase SDK Integration -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, push, onValue, remove, get, child } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDgYI09PYhueTjCD8r2I8mN9AfN8p0ARkg",
@@ -247,7 +244,44 @@
         );
     };
 
-    // 100% Fixed Save Engine
+    // Auto Image Compressor Function
+    function compressImage(file, callback) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                const max_size = 1000; // Resize to max 1000px
+
+                if (width > height) {
+                    if (width > max_size) {
+                        height *= max_size / width;
+                        width = max_size;
+                    }
+                } else {
+                    if (height > max_size) {
+                        width *= max_size / height;
+                        height = max_size;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Compress quality to 0.6 (JPEG)
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
+                callback(compressedBase64);
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Fixed Save Engine
     window.saveCustomer = function() {
         const regNo = document.getElementById('regNo').value.trim();
         const name = document.getElementById('custName').value.trim();
@@ -275,17 +309,15 @@
         }
 
         if (photoInput.files && photoInput.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                uploadToCloud(regNo, name, phone, lat, lng, e.target.result);
-            };
-            reader.readAsDataURL(photoInput.files[0]);
+            compressImage(photoInput.files[0], function(compressedPhoto) {
+                uploadToCloud(regNo, name, phone, lat, lng, compressedPhoto, true);
+            });
         } else {
-            uploadToCloud(regNo, name, phone, lat, lng, null);
+            uploadToCloud(regNo, name, phone, lat, lng, null, false);
         }
     };
 
-    function uploadToCloud(regNo, name, phone, lat, lng, photo) {
+    function uploadToCloud(regNo, name, phone, lat, lng, photo, hasPhoto) {
         const customerData = {
             regNo: regNo,
             name: name,
@@ -293,6 +325,7 @@
             lat: lat,
             lng: lng,
             photo: photo || '',
+            hasPhoto: hasPhoto,
             timestamp: Date.now()
         };
 
@@ -310,10 +343,42 @@
     onValue(dbRef, (snapshot) => {
         customers = [];
         snapshot.forEach((childSnapshot) => {
-            customers.unshift({ firebaseKey: childSnapshot.key, ...childSnapshot.val() });
+            const val = childSnapshot.val();
+            customers.unshift({ 
+                firebaseKey: childSnapshot.key,
+                regNo: val.regNo,
+                name: val.name,
+                phone: val.phone,
+                lat: val.lat,
+                lng: val.lng,
+                hasPhoto: val.hasPhoto || (val.photo ? true : false)
+            });
         });
         renderCustomers(customers);
     });
+
+    // Fetch Photo On-Demand (Data Saver)
+    window.loadCustomerPhoto = function(key) {
+        const btn = document.getElementById(`btn-img-${key}`);
+        const imgTag = document.getElementById(`img-${key}`);
+        
+        btn.innerText = "⏳ ඡායාරූපය ලෝඩ් වේ...";
+        btn.disabled = true;
+
+        const dbRefSingle = ref(db);
+        get(child(dbRefSingle, `customers/${key}/photo`)).then((snapshot) => {
+            if (snapshot.exists() && snapshot.val()) {
+                imgTag.src = snapshot.val();
+                imgTag.style.display = "block";
+                btn.style.display = "none";
+            } else {
+                btn.innerText = "❌ ඡායාරූපයක් නැත";
+            }
+        }).catch((error) => {
+            btn.innerText = "❌ Load වුණේ නෑ, නැවත උත්සාහ කරන්න";
+            btn.disabled = false;
+        });
+    };
 
     window.deleteCustomer = function(key) {
         const enteredPin = prompt("🔒 ඩිලීට් කිරීමට Security PIN එක ඇතුළත් කරන්න:");
@@ -366,20 +431,6 @@
         document.getElementById("imageModal").style.display = "none";
     };
 
-    // Toggle Details Function
-    window.toggleDetails = function(key) {
-        const detailDiv = document.getElementById('details-' + key);
-        const btnText = document.getElementById('btn-text-' + key);
-        if (detailDiv.style.display === "block") {
-            detailDiv.style.display = "none";
-            btnText.innerText = "👇 විස්තර සහ ඡායාරූපය බලන්න";
-        } else {
-            detailDiv.style.display = "block";
-            btnText.innerText = "👆 විස්තර සඟවන්න";
-        }
-    };
-
-    // Optimized Fast Rendering Engine
     function renderCustomers(list) {
         const container = document.getElementById('customerList');
         container.innerHTML = '';
@@ -391,22 +442,21 @@
 
         list.forEach(c => {
             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
-            const hasPhotoText = c.photo ? ' 📷' : '';
-            const imageHtml = c.photo ? `<img src="${c.photo}" class="house-img" onclick="openImageModal('${c.photo}')" alt="House Photo">` : '';
+            
+            const photoButtonHtml = c.hasPhoto ? 
+                `<button id="btn-img-${c.firebaseKey}" class="btn-load-photo" onclick="loadCustomerPhoto('${c.firebaseKey}')">📷 ඡායාරූපය බලන්න (Data Saver Enabled)</button>` : '';
 
             container.innerHTML += `
                 <div class="card">
                     <button class="btn-delete" onclick="deleteCustomer('${c.firebaseKey}')">🗑️ ඩිලීට්</button>
-                    <div class="card-header" onclick="toggleDetails('${c.firebaseKey}')">
-                        <h4>[${c.regNo}] ${c.name}${hasPhotoText}</h4>
-                        <p>📞 ${c.phone || 'දුරකථන අංකයක් නැත'}</p>
-                        <span class="expand-btn" id="btn-text-${c.firebaseKey}">👇 විස්තර සහ ඡායාරූපය බලන්න</span>
-                    </div>
-                    <div class="card-details" id="details-${c.firebaseKey}">
-                        <p style="font-size:11px; color:#888;">📍 Lat: ${c.lat}, Lng: ${c.lng}</p>
-                        ${imageHtml}
-                        <a href="${mapsUrl}" target="_blank" class="btn-nav">🚗 කෙළින්ම ගෙදරටම Route එක දාන්න (Google Maps)</a>
-                    </div>
+                    <h4>[${c.regNo}] ${c.name}</h4>
+                    <p>📞 ${c.phone || 'දුරකථන අංකයක් නැත'}</p>
+                    <p style="font-size:11px; color:#888;">📍 Lat: ${c.lat}, Lng: ${c.lng}</p>
+                    
+                    ${photoButtonHtml}
+                    <img id="img-${c.firebaseKey}" class="house-img" onclick="openImageModal(this.src)" alt="House Photo">
+                    
+                    <a href="${mapsUrl}" target="_blank" class="btn-nav">🚗 කෙළින්ම ගෙදරටම Route එක දාන්න (Google Maps)</a>
                 </div>
             `;
         });
