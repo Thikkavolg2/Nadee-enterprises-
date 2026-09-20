@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Customer Route Tracker - Final Fixed</title>
+    <title>Cloud Customer Route Tracker - Fixed Save</title>
     
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -20,7 +20,7 @@
         .btn-reset { background-color: #6c757d; color: white; }
         .btn-delete { background-color: #d93025; color: white; font-size: 12px; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; float: right; font-weight: bold; }
         
-        #map { height: 340px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; background: #e5e3df; }
+        #map { height: 320px; width: 100%; border-radius: 8px; margin-top: 8px; border: 2px solid #1a73e8; background: #e5e3df; }
         .map-instructions { font-size: 11px; color: #333; margin-top: 4px; text-align: center; background: #e8f0fe; padding: 6px; border-radius: 4px; }
 
         .card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #1a73e8; padding: 12px; margin-top: 10px; border-radius: 6px; position: relative; }
@@ -28,8 +28,6 @@
         .card p { margin: 2px 0; font-size: 13px; color: #555; }
         
         .btn-link-photo { display: block; text-align: center; background: #fff3cd; color: #856404; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: bold; text-decoration: none; border: 1px solid #ffeeba; margin-top: 8px; cursor: pointer; }
-        .btn-link-photo:hover { background: #ffe8a1; }
-        
         .btn-nav { background-color: #34a853; color: white; text-decoration: none; padding: 10px 14px; border-radius: 6px; font-size: 13px; display: inline-block; margin-top: 8px; font-weight: bold; text-align: center; width: 100%; }
 
         #toast {
@@ -46,7 +44,7 @@
 <body>
 
 <div class="container">
-    <h3>☁️ Cloud Live Route Tracker (Dual Pin Precision)</h3>
+    <h3>☁️ Cloud Live Route Tracker (Fixed Save)</h3>
 
     <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #eee;">
         <div class="form-group">
@@ -71,14 +69,14 @@
 
         <div id="map"></div>
         <div class="map-instructions">
-            🔴 <b>රතු Marker:</b> ඔබ දැනට ඉන්න නිවැරදි තැන (වෙනස් කළ නොහැක)<br>
-            🟢 <b>කොළ Marker:</b> සේව් කිරීමට අවශ්‍ය තැනට Drag කරන්න (Save වෙන ස්ථානය)
+            🔴 <b>රතු Marker:</b> ඔබ දැනට ඉන්න ස්ථානය<br>
+            🟢 <b>කොළ Marker:</b> සේව් වන ස්ථානය (Drag කර වෙනස් කරන්න)
         </div>
 
         <input type="hidden" id="lat">
         <input type="hidden" id="lng">
 
-        <button class="btn btn-save" onclick="saveCustomer()">💾 🟢 කොළ පාට Location එක Cloud සේව් කරන්න</button>
+        <button class="btn btn-save" id="saveBtn" onclick="saveCustomer()">💾 🟢 කොළ පාට Location එක Cloud සේව් කරන්න</button>
         <button class="btn btn-reset" onclick="resetForm()">🔄 Form එක Clean කරන්න (Reset)</button>
     </div>
 
@@ -91,10 +89,8 @@
 
 <div id="toast">✅ Cloud එකට සේව් විය!</div>
 
-<!-- Google Maps SDK -->
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCNYXeeKPX9iLkttdcNrJLV6L7bq1sfOqY&callback=initMap&loading=async" async defer></script>
 
-<!-- Firebase SDK Integration -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -123,20 +119,13 @@
     const SAVE_PIN = "1234";
     const DELETE_PIN = "1234";
 
-    // Global Functions Connection
     window.initMap = function() {
         const defaultCenter = { lat: 7.8731, lng: 80.7718 };
-        
         map = new google.maps.Map(document.getElementById("map"), {
             zoom: 7,
             center: defaultCenter,
             mapTypeId: google.maps.MapTypeId.ROADMAP,
-            mapTypeControl: true,
-            gestureHandling: 'greedy',
-            mapTypeControlOptions: {
-                style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-                position: google.maps.ControlPosition.TOP_RIGHT
-            }
+            gestureHandling: 'greedy'
         });
 
         map.addListener("click", (e) => {
@@ -146,15 +135,11 @@
 
     function updateRedMarker(lat, lng) {
         const pos = { lat: parseFloat(lat), lng: parseFloat(lng) };
-
         if (redLiveMarker) {
             redLiveMarker.setPosition(pos);
         } else {
             redLiveMarker = new google.maps.Marker({
-                position: pos,
-                map: map,
-                draggable: false,
-                title: "ඔබ දැනට සිටින ස්ථානය (Fixed Live Position)",
+                position: pos, map: map, draggable: false,
                 icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
             });
         }
@@ -163,7 +148,6 @@
     function updateGreenMarker(lat, lng) {
         const exactLat = parseFloat(lat).toFixed(7);
         const exactLng = parseFloat(lng).toFixed(7);
-
         document.getElementById('lat').value = exactLat;
         document.getElementById('lng').value = exactLng;
 
@@ -173,10 +157,7 @@
             greenSaveMarker.setPosition(pos);
         } else {
             greenSaveMarker = new google.maps.Marker({
-                position: pos,
-                map: map,
-                draggable: true,
-                title: "සේව් වන ස්ථානය (Drag කරන්න)",
+                position: pos, map: map, draggable: true,
                 icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
                 animation: google.maps.Animation.DROP
             });
@@ -189,17 +170,15 @@
 
     window.getExactPinPoint = function() {
         const status = document.getElementById('status');
-        status.innerText = "📡 GPS Signals පිරිසිදු කරමින් 1-2m precision එකට සම්බන්ධ වේ...";
+        status.innerText = "📡 GPS Signals ලබා ගනිමින් පවතී...";
         status.style.color = "#f9ab00";
 
         if (!navigator.geolocation) {
-            status.innerText = "❌ ඔබේ දුරකථනයේ GPS පහසුකම නොමැත.";
+            alert("❌ Phone Location GPS ඔන් කරන්න!");
             return;
         }
 
-        if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId);
-        }
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
 
         watchId = navigator.geolocation.watchPosition(
             (pos) => {
@@ -208,15 +187,12 @@
                 const acc = Math.round(pos.coords.accuracy);
 
                 updateRedMarker(lat, lng);
-
-                if (!greenSaveMarker) {
-                    updateGreenMarker(lat, lng);
-                }
+                if (!greenSaveMarker) updateGreenMarker(lat, lng);
 
                 map.setCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
-                map.setZoom(19);
+                map.setZoom(18);
 
-                status.innerText = `🎯 නිවැරදි බව (Accuracy): ~${acc}m (${acc <= 5 ? "ඉතාමත් නිවැරදියි ✅" : "GPS Signal තවදුරටත් පිරිසිදු වේ... ⏳"})`;
+                status.innerText = `🎯 Accuracy: ~${acc}m (${acc <= 5 ? "සම්පූර්ණයි ✅" : "GPS Signal සකස් වෙමින්... ⏳"})`;
                 status.style.color = acc <= 5 ? "green" : "#f9ab00";
 
                 if (acc <= 2) {
@@ -224,19 +200,33 @@
                     watchId = null;
                 }
             },
-            (err) => {
-                status.innerText = "❌ Phone Location (GPS) On කර එළිමහනක සිට උත්සාහ කරන්න.";
-                status.style.color = "red";
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 20000,
-                maximumAge: 0
-            }
+            (err) => { status.innerText = "❌ GPS සක්‍රීය නැත."; status.style.color = "red"; },
+            { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
         );
     };
 
-    // 100% Fixed Save Engine
+    // Image Compression Engine to prevent Firebase Reject
+    function compressAndGetBase64(file, callback) {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 600;
+                const scaleFactor = MAX_WIDTH / img.width;
+                canvas.width = MAX_WIDTH;
+                canvas.height = img.height * scaleFactor;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); // Compress to 60% quality
+                callback(compressedBase64);
+            };
+        };
+    }
+
     window.saveCustomer = function() {
         const regNo = document.getElementById('regNo').value.trim();
         const name = document.getElementById('custName').value.trim();
@@ -251,24 +241,24 @@
         }
 
         if (!lat || !lng) {
-            alert("කරුණාකර 🎯 GPS Button එක ඔබා 🟢 කොළ පාට Location Pin එක සකස් කරගන්න!");
+            alert("කරුණාකර 🎯 GPS Button එක ඔබා Location Pin එක ලබාගන්න!");
             return;
         }
 
-        const enteredPin = prompt("🔒 දත්ත සේව් කිරීමට Security PIN එක ඇතුළත් කරන්න:");
-        
+        const enteredPin = prompt("🔒 සේව් කිරීමට Security PIN එක (1234):");
         if (enteredPin === null) return;
         if (String(enteredPin).trim() !== SAVE_PIN) {
-            alert("❌ Security PIN එක වැරදියි! (නිවැරදි PIN එක: 1234)");
+            alert("❌ PIN එක වැරදියි!");
             return;
         }
 
+        document.getElementById('saveBtn').innerText = "⏳ Cloud එකට Upload වෙමින් පවතී...";
+        document.getElementById('saveBtn').disabled = true;
+
         if (photoInput.files && photoInput.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                uploadToCloud(regNo, name, phone, lat, lng, e.target.result);
-            };
-            reader.readAsDataURL(photoInput.files[0]);
+            compressAndGetBase64(photoInput.files[0], function(compressedPhoto) {
+                uploadToCloud(regNo, name, phone, lat, lng, compressedPhoto);
+            });
         } else {
             uploadToCloud(regNo, name, phone, lat, lng, null);
         }
@@ -291,7 +281,11 @@
                 resetForm();
             })
             .catch((err) => {
-                alert("Cloud Save Error: " + err.message);
+                alert("❌ Save Error: " + err.message + "\n\n(කරුණාකර Firebase Realtime Database Rules පරීක්ෂා කරන්න)");
+            })
+            .finally(() => {
+                document.getElementById('saveBtn').innerText = "💾 🟢 කොළ පාට Location එක Cloud සේව් කරන්න";
+                document.getElementById('saveBtn').disabled = false;
             });
     }
 
@@ -302,17 +296,19 @@
             customers.unshift({ firebaseKey: childSnapshot.key, ...childSnapshot.val() });
         });
         renderCustomers(customers);
+    }, (error) => {
+        alert("❌ Database Permission Error: " + error.message);
     });
 
     window.deleteCustomer = function(key) {
-        const enteredPin = prompt("🔒 ඩිලීට් කිරීමට Security PIN එක ඇතුළත් කරන්න:");
+        const enteredPin = prompt("🔒 ඩිලීට් කිරීමට Security PIN එක:");
         if (enteredPin === null) return;
         if (String(enteredPin).trim() === DELETE_PIN) {
             remove(ref(db, `customers/${key}`))
-                .then(() => showToast("🗑️ Cloud එකෙන් ඩිලීට් විය!"))
+                .then(() => showToast("🗑️ ඩිලීට් විය!"))
                 .catch((err) => alert("Error: " + err.message));
         } else {
-            alert("❌ PIN අංකය වැරදියි! (PIN: 1234)");
+            alert("❌ PIN එක වැරදියි!");
         }
     };
 
@@ -325,18 +321,10 @@
         document.getElementById('lng').value = '';
         document.getElementById('status').innerText = '';
         
-        if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId);
-            watchId = null;
-        }
-
+        if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
         if (redLiveMarker) { redLiveMarker.setMap(null); redLiveMarker = null; }
         if (greenSaveMarker) { greenSaveMarker.setMap(null); greenSaveMarker = null; }
-        
-        if (map) {
-            map.setCenter({ lat: 7.8731, lng: 80.7718 });
-            map.setZoom(7);
-        }
+        if (map) { map.setCenter({ lat: 7.8731, lng: 80.7718 }); map.setZoom(7); }
     };
 
     function showToast(msg) {
@@ -346,7 +334,6 @@
         setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
     }
 
-    // Open Image directly in a New Tab/Window via Link Click (Zero Overhead on History Load)
     window.openImageInNewTab = function(key) {
         const cust = customers.find(c => c.firebaseKey === key);
         if (cust && cust.photo) {
@@ -355,7 +342,6 @@
         }
     };
 
-    // Ultra Fast Rendering Engine (No Images Rendered in History DOM)
     function renderCustomers(list) {
         const container = document.getElementById('customerList');
         container.innerHTML = '';
@@ -367,8 +353,6 @@
 
         list.forEach(c => {
             const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}&travelmode=driving`;
-            
-            // Link to view photo on demand in new window
             const photoBtn = c.photo 
                 ? `<div class="btn-link-photo" onclick="openImageInNewTab('${c.firebaseKey}')">🖼️ ඡායාරූපය බලන්න (Link)</div>`
                 : '';
